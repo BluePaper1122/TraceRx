@@ -4,6 +4,10 @@
 
 > Research demonstration only. All cases and documents are invented. ResistLens does not diagnose, prescribe, recommend medication changes, determine resistance, or assess treatment appropriateness. A flag means no qualifying review is documented in the available record. “Reviewed” and “No trigger” are workflow states, not clinical safety judgments.
 
+## Start on a Mac without typing commands
+
+Double-click `Launch ResistLens.command` in this folder. It opens the app in your default browser; keep its Terminal window open. It reuses an available project environment, or installs dependencies on first use. Start with **Start here** and follow the four guided steps. This isolated walkthrough does not modify your patient workspace.
+
 ## Run in four commands
 
 Use Python 3.11 or newer (tested here with Python 3.14). Open a terminal in this project folder:

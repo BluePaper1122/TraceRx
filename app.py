@@ -42,7 +42,7 @@ def audit(action, detail, **changes):
 with st.sidebar:
     st.markdown('## ◉ ResistLens')
     st.caption('ANTIMICROBIAL STEWARDSHIP LAB')
-    page = st.radio('Navigate', ['Overview', 'Patient workspace', 'Document studio', 'Evaluation lab', 'About & demo'], label_visibility='collapsed')
+    page = st.radio('Navigate', ['Start here', 'Overview', 'Patient workspace', 'Document studio', 'Evaluation lab', 'About & demo'], label_visibility='collapsed')
     st.divider()
     st.markdown('**Demo clock**')
     offset = st.slider('Hours since Sep 10, 06:00 UTC', 0, 48, 36)
@@ -66,7 +66,45 @@ st.caption('Research demonstration only • Synthetic data • Does not diagnose
 cases = st.session_state.cases
 all_findings = {c.patient_id: evaluate(c, as_of) for c in cases}
 
-if page == 'Overview':
+if page == 'Start here':
+    st.subheader('Start here · your first demonstration')
+    st.write('This is the app. You do not need GitHub or VS Code to use it. Follow these four steps; each one uses the real workflow engine on an isolated synthetic example.')
+    st.caption('This walkthrough has its own clock and example. It does not change your patient workspace or use the sidebar clock.')
+    step = st.session_state.get('guide_step', 0)
+    st.progress((step+1)/4, text=f'Step {step+1} of 4')
+    titles = ['An antimicrobial order is active', 'A final report arrives', 'A review is documented', 'You have completed the demonstration']
+    descriptions = [
+        'The synthetic order started yesterday. At 09:00 today the final report has not arrived. There is no review trigger yet.',
+        'At 10:00 a final microbiology report arrives. The order is active, but there is no linked review in this example. The yellow message identifies that documentation gap.',
+        'You clicked Record a demo review. The walkthrough added a clearly labeled simulated review linked to this exact report and order. The engine now recognizes that documentation.',
+        'The story is: new evidence → visible review gap → documented review. You can repeat it or use the navigation on the left to explore the full app.'
+    ]
+    st.markdown('### '+titles[step])
+    st.write(descriptions[step])
+    guided_case = demo_cases()[0]
+    guided_time = DEMO_NOW - timedelta(hours=9 if step == 0 else 8 if step == 1 else 7)
+    if step >= 2:
+        guided_case.documents.append(make_document(guided_case.patient_id, guided_case.encounter_id, 'review', 'GUIDED-REVIEW',
+            guided_time.isoformat(), reviewed_report_id='DEMO-101-R1', reviewed_order_id='DEMO-101-O1',
+            reviewer='Simulated walkthrough reviewer', review_note='Simulated review for the guided demonstration only.'))
+    for finding in evaluate(guided_case, guided_time):
+        {'No trigger': st.info, 'Needs review': st.warning, 'Reviewed': st.success, 'Needs verification': st.error}[finding.state](finding.state+' — '+finding.reason)
+    with st.expander('See the source documents used in this step'):
+        for document in guided_case.documents:
+            if document.event.occurred_at and document.event.occurred_at <= guided_time:
+                st.code(document.text, language=None)
+    if step < 3:
+        label = ['Next: show the final report', 'Record a demo review', 'Finish walkthrough'][step]
+        if st.button(label, type='primary'):
+            st.session_state.guide_step = step+1
+            st.rerun()
+    if step > 0 and st.button('Restart walkthrough'):
+        st.session_state.guide_step = 0
+        st.rerun()
+    st.markdown('**Where to go next:** Open the left navigation (the » button at the top left if it is hidden). Choose **Patient workspace** to document your own synthetic review, **Document studio** to try a sample image, or **Overview** for the full queue.')
+    st.caption('No API key, upload or typing is needed for this walkthrough. All reviews here are simulated; no medication is changed.')
+
+elif page == 'Overview':
     st.subheader('Stewardship overview')
     st.write('A shared view of evidence, review documentation, and records that need verification.')
     cols = st.columns(4)

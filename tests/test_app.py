@@ -52,3 +52,16 @@ def test_editing_extraction_requires_new_confirmation():
     editor = next(t for t in app.text_area if t.label == 'Editable validated JSON')
     editor.set_value(editor.value+' ').run()
     assert not next(c for c in app.checkbox if c.label.startswith('I checked')).value
+
+def test_guided_walkthrough_uses_real_rule_engine():
+    app = AppTest.from_file(APP, default_timeout=30).run()
+    assert app.sidebar.radio[0].value == 'Start here'
+    assert any('No trigger' in x.value for x in app.info)
+    for label, expected in [('Next: show the final report', 'Needs review'), ('Record a demo review', 'Reviewed')]:
+        next(b for b in app.button if b.label == label).click().run()
+        assert not app.exception
+        assert any(expected in x.value for x in list(app.warning)+list(app.success))
+    assert len(app.session_state['cases'][0].documents) == 2
+    next(b for b in app.button if b.label == 'Finish walkthrough').click().run()
+    next(b for b in app.button if b.label == 'Restart walkthrough').click().run()
+    assert any('No trigger' in x.value for x in app.info)
