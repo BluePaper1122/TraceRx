@@ -34,3 +34,21 @@ def test_studio_replay_and_import():
     next(b for b in app.button if b.label == 'Verify and add to matching case').click().run()
     assert not app.exception
     assert any('Verified event added' in s.value for s in app.success)
+
+def test_repeat_extraction_resets_confirmation():
+    app = AppTest.from_file(APP, default_timeout=30).run()
+    app.sidebar.radio[0].set_value('Document studio').run()
+    next(b for b in app.button if b.label == 'Extract document').click().run()
+    next(c for c in app.checkbox if c.label.startswith('I checked')).check().run()
+    assert next(c for c in app.checkbox if c.label.startswith('I checked')).value
+    next(b for b in app.button if b.label == 'Extract document').click().run()
+    assert not next(c for c in app.checkbox if c.label.startswith('I checked')).value
+
+def test_editing_extraction_requires_new_confirmation():
+    app = AppTest.from_file(APP, default_timeout=30).run()
+    app.sidebar.radio[0].set_value('Document studio').run()
+    next(b for b in app.button if b.label == 'Extract document').click().run()
+    next(c for c in app.checkbox if c.label.startswith('I checked')).check().run()
+    editor = next(t for t in app.text_area if t.label == 'Editable validated JSON')
+    editor.set_value(editor.value+' ').run()
+    assert not next(c for c in app.checkbox if c.label.startswith('I checked')).value

@@ -110,3 +110,29 @@ def test_unverified_end_cannot_silence_flag():
     case = demo_cases()[0]
     case.documents[0].event.order_end = DEMO_NOW
     assert case_state(evaluate(case, DEMO_NOW)) == 'Needs verification'
+
+def test_future_uncertain_record_does_not_affect_snapshot():
+    case = demo_cases()[0]
+    future = make_document(case.patient_id, case.encounter_id, 'microbiology', 'FUTURE',
+        '2026-09-12T10:00:00+00:00', report_status='unknown', report_id='FUTURE-R', result='Synthetic')
+    future.verified = False
+    case.documents.append(future)
+    fs = evaluate(case, DEMO_NOW)
+    assert not any(f.state == 'Needs verification' for f in fs)
+    assert any(f.state == 'Needs review' for f in fs)
+
+def test_duplicate_records_do_not_hide_unrelated_flag():
+    case = demo_cases()[0]
+    other = make_document(case.patient_id, case.encounter_id, 'microbiology', 'DUP',
+        '2026-09-11T11:00:00+00:00', report_status='final', report_id='DUP-R', result='Synthetic')
+    case.documents += [other, other.model_copy(deep=True)]
+    fs = evaluate(case, DEMO_NOW)
+    assert any(f.state == 'Needs verification' for f in fs)
+    assert any(f.state == 'Needs review' and f.report_id == 'DEMO-101-R1' for f in fs)
+
+def test_future_duplicate_does_not_quarantine_current_report():
+    case = demo_cases()[0]
+    future = make_document(case.patient_id, case.encounter_id, 'microbiology', 'DEMO-101-M1',
+        '2026-09-12T10:00:00+00:00', report_status='final', report_id='DEMO-101-R1', result='Synthetic')
+    case.documents.append(future)
+    assert case_state(evaluate(case, DEMO_NOW)) == 'Needs review'

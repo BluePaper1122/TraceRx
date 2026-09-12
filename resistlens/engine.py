@@ -1,5 +1,6 @@
 """Temporal workflow rule v1.0. No diagnosis, susceptibility logic or prescribing."""
 from datetime import datetime
+from collections import Counter
 from .models import Case, Finding, readiness
 
 RULE_VERSION = '1.0'
@@ -8,22 +9,21 @@ def evaluate(case: Case, as_of: datetime) -> list[Finding]:
     if as_of.tzinfo is None:
         raise ValueError('Evaluation clock must include a timezone')
     findings, accepted = [], []
-    seen = set()
-    report_versions = set()
-    for doc in case.documents:
+    # Known future events cannot affect the current snapshot, including quality
+    # warnings and duplicate detection. Unknown times still need verification.
+    visible = [d for d in case.documents if d.event.occurred_at is None or d.event.occurred_at <= as_of]
+    event_counts = Counter(d.event.event_id for d in visible)
+    report_counts = Counter(d.event.report_id for d in visible
+                            if d.event.kind == 'microbiology' and d.event.report_id is not None)
+    for doc in visible:
         e = doc.event
-        if e.event_id in seen:
+        duplicate_event = event_counts[e.event_id] > 1
+        duplicate_report = e.kind == 'microbiology' and e.report_id is not None and report_counts[e.report_id] > 1
+        if duplicate_event or duplicate_report:
             findings.append(Finding(state='Needs verification', report_id=e.report_id, order_id=None,
-                                    reason='Duplicate event identifier; reconcile documents.', evidence_ids=[doc.document_id]))
-            # A duplicate makes the case ambiguous. Never clear it with the other copy.
-            return findings
-        seen.add(e.event_id)
-        if e.kind == 'microbiology' and e.report_id is not None:
-            if e.report_id in report_versions:
-                return [Finding(state='Needs verification', report_id=e.report_id, order_id=None,
-                    reason='Repeated report version ID; reconcile version identity before evaluation.',
-                    evidence_ids=[doc.document_id])]
-            report_versions.add(e.report_id)
+                reason='Duplicate event or report-version identifier; reconcile these documents. Unrelated evidence is still evaluated.',
+                evidence_ids=[doc.document_id]))
+            continue
         quality = readiness(doc)
         if e.patient_id != case.patient_id or e.encounter_id != case.encounter_id:
             quality['problems'].append('Patient or encounter does not match this case')

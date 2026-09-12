@@ -208,13 +208,14 @@ elif page == 'Document studio':
             with st.spinner('Extracting and validating fields…'):
                 adapter = {'Offline fixture replay': DemoAdapter, 'Local synthetic text': TextAdapter, 'Live AI vision': OpenAIAdapter}[mode]()
                 document = adapter.extract(text_input if mode == 'Local synthetic text' else source_data)
-            st.session_state.pending = {'token': source_token, 'doc': document}
+            st.session_state.pending = {'token': source_token, 'doc': document, 'attempt': uuid.uuid4().hex}
             audit('Extraction completed', f'{mode}; source {document.sha256[:12]}')
         except ExtractionError as exc:
             st.error(str(exc))
     pending = st.session_state.get('pending')
     if pending and pending['token'] == source_token:
         doc = pending['doc']
+        attempt = pending['attempt']
         a, b = st.columns([1, 1])
         with a:
             st.markdown('### Source')
@@ -225,10 +226,10 @@ elif page == 'Document studio':
         with b:
             st.markdown('### Structured event')
             st.caption('Correct values and their quoted evidence together. Source quotes must be exact. Null means unknown.')
-            edited = st.text_area('Editable validated JSON', doc.event.model_dump_json(indent=2), height=400, key='json_'+source_token)
+            edited = st.text_area('Editable validated JSON', doc.event.model_dump_json(indent=2), height=400, key='json_'+attempt)
             st.dataframe(pd.DataFrame([e.model_dump() for e in doc.event.evidence]), hide_index=True, width='stretch')
-        confirm = st.checkbox('I checked every required value, timestamp, ID and quote against the displayed synthetic source.', key='verify_'+source_token)
-        replace = st.checkbox('Replace an existing event with the same ID (if present).', key='replace_'+source_token)
+        confirm = st.checkbox('I checked every required value, timestamp, ID and quote against the displayed synthetic source.', key='verify_'+attempt+hashlib.sha256(edited.encode()).hexdigest())
+        replace = st.checkbox('Replace an existing event with the same ID (if present).', key='replace_'+attempt)
         if st.button('Verify and add to matching case', disabled=not confirm):
             try:
                 event = ClinicalEvent.model_validate_json(edited)
