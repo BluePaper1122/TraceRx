@@ -1,8 +1,8 @@
 # ResistLens
 
-**Close the evidence-to-review gap.** A Python-first HackRice project for Yiyi: a polished, fully offline-demoable antimicrobial-stewardship workflow tool.
+**Close the evidence-to-review gap.** A Python-first project: a polished, fully offline-demoable antimicrobial-stewardship workflow tool.
 
-> Research demonstration only. All cases and documents are invented. ResistLens does not diagnose, prescribe, recommend medication changes, determine resistance, or assess treatment appropriateness. A flag means no qualifying review is documented in the available record. “Reviewed” and “No trigger” are workflow states, not clinical safety judgments.
+> Note that this is a research demonstration only. All cases and documents are invented. ResistLens does not diagnose, prescribe, recommend medication changes, determine resistance, or assess treatment appropriateness. A flag means no qualifying review is documented in the available record. “Reviewed” and “No trigger” are workflow states, not clinical safety judgments.
 
 ## Start on a Mac without typing commands
 
