@@ -8,3 +8,6 @@ __pycache__/
 .DS_Store
 benchmark-result*.json
 vision-results*.json
+
+web/node_modules/
+web/dist/

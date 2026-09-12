@@ -1,0 +1,13 @@
+.git
+.env
+.env.*
+.streamlit
+.venv
+**/__pycache__
+.pytest_cache
+web/node_modules
+web/dist
+outputs
+work
+*.log
+*results*.json
