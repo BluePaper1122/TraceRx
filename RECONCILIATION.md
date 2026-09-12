@@ -48,15 +48,3 @@ Pre-existing tracked modifications were exactly app.py, requirements.txt and res
 | P1 | Version a risk-ingestion contract across adapters, fixtures, verification, UI and evaluation | Source-verified extracted risk records reach the same score shown in a true end-to-end test |
 | P2 | Improve decorative benchmark font glyphs in a versioned corpus | New manifest/version, unchanged label truth, all-image visual review |
 | Defer | Real Fabric/EHR, real data, clinical prediction claims, training and production storage | Separate scoped project with evidence and appropriate governance |
-
-## Strongest three-minute demo
-
-0:00–0:35: show DEMO-101, final evidence arrives at hour 28, and the exact order/report gap.
-
-0:35–1:10: show source versus structured output and verification. Use a rehearsed live request only with a measured result; otherwise explicitly call the path fixture replay.
-
-1:10–1:45: open Synthetic risk scorecard. Contrast Not tested (15-point fallback with missing-data label), Aged positive (22 points), and MRSA persistence/clearance (50/15 points). Explain assumptions and source-linked arithmetic.
-
-1:45–2:20: select Transfer records unavailable, run mock lookup, show verified fictional history and the resulting 60-point score. Say “mock” aloud.
-
-2:20–3:00: record a source-linked review, show evaluation evidence and conclude with visible uncertainty and traceable workflow continuity. Do not claim improved patient outcomes, measured failure probability or real cross-hospital sharing.
