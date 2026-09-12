@@ -24,15 +24,35 @@ class Failed:
     def extract(self,data):
         raise ExtractionError('private provider detail must not appear')
 
+class OneSuccessThenFailure:
+    model='mixed-test'
+    def __init__(self):
+        self.calls=0
+    def extract(self,data):
+        self.calls+=1
+        if self.calls==1:
+            return base_documents()[0]
+        raise ExtractionError('private provider detail must not appear')
+
 def test_scoring_failure_denominators_and_empty():
     sample=load_manifest()[0]
     assert run_samples([sample],Fake())['non_null_field_accuracy']==1
     r=run_samples([sample],Failed())
-    assert r['field_accuracy']==r['non_null_field_accuracy']==0
-    assert r['document_exact_match']==0 and r['failures']==1
+    assert r['field_accuracy'] is None and r['non_null_field_accuracy'] is None
+    assert r['document_exact_match'] is None and r['failures']==1
+    assert r['scored_documents']==0
+    assert r['results'][0]['error_type']=='extraction'
+    assert r['results'][0]['error']=='Extraction failed before scoring.'
     assert 'private provider' not in str(r)
-    assert all(x['total']==1 and x['correct']==0 for x in r['per_field'].values())
+    assert all(x['total']==0 and x['correct']==0 for x in r['per_field'].values())
     assert run_samples([],Fake())['field_accuracy'] is None
+
+def test_failed_calls_are_excluded_from_successful_accuracy():
+    report=run_samples(load_manifest()[:2],OneSuccessThenFailure())
+    assert report['documents']==2 and report['scored_documents']==1
+    assert report['failures']==1 and report['field_accuracy']==1
+    assert report['document_exact_match']==1
+    assert all(value['total']==1 for value in report['per_field'].values())
 
 @pytest.mark.parametrize('damage',['hash','missing'])
 def test_corrupt_or_missing_image_is_failure(damage):

@@ -127,29 +127,38 @@ def run_samples(samples, adapter, root=ROOT, on_progress=None):
             results.append({'sample_id':sample['sample_id'],'variant':sample['variant'],'split':sample['split'],
                             'success':True,'fields':fields,'seconds':round(time.monotonic()-started,2),
                             'extraction':doc.model_dump(mode='json')})
-        except (ExtractionError, OSError):
+        except ExtractionError as exc:
             results.append({'sample_id':sample['sample_id'],'variant':sample['variant'],'split':sample['split'],
-                            'success':False,'fields':[{'field':f,'expected':sample['truth'][f],'actual':None,'correct':False,'unsupported_population':False} for f in FIELDS], 'seconds':round(time.monotonic()-started,2), 'error':'Image unavailable, checksum mismatch, or extraction failed.'})
+                            'success':False,'fields':[], 'seconds':round(time.monotonic()-started,2),
+                            'error_type':exc.category,'error':exc.public_message})
+        except OSError:
+            results.append({'sample_id':sample['sample_id'],'variant':sample['variant'],'split':sample['split'],
+                            'success':False,'fields':[], 'seconds':round(time.monotonic()-started,2),
+                            'error_type':'source','error':'The benchmark image could not be read. Verify the deployed dataset files.'})
         if on_progress:
             on_progress(index+1,len(samples))
     return summarize(results, getattr(adapter,'model',None))
 
 def summarize(results, model=None):
-    denominator=len(results)*len(FIELDS)
-    fields=[f for r in results for f in r['fields']]
+    scored=[r for r in results if r['success']]
+    denominator=len(scored)*len(FIELDS)
+    fields=[f for r in scored for f in r['fields']]
     by_variant={}
     for variant in sorted({r['variant'] for r in results}):
         group=[r for r in results if r['variant']==variant]
-        by_variant[variant]={'documents':len(group), 'field_accuracy':sum(f['correct'] for r in group for f in r['fields'])/(len(group)*len(FIELDS)),
+        scored_group=[r for r in group if r['success']]
+        by_variant[variant]={'documents':len(group), 'scored_documents':len(scored_group),
+                             'field_accuracy':sum(f['correct'] for r in scored_group for f in r['fields'])/(len(scored_group)*len(FIELDS)) if scored_group else None,
                              'failures':sum(not r['success'] for r in group)}
     return {'model':model,'created_at':datetime.now(timezone.utc).isoformat(), 'documents':len(results),
+            'scored_documents':len(scored),
             'field_accuracy':sum(f['correct'] for f in fields)/denominator if denominator else None,
             'non_null_field_accuracy':sum(f['correct'] for f in fields if f['expected'] is not None)/sum(f['expected'] is not None for f in fields) if any(f['expected'] is not None for f in fields) else None,
-            'per_field':{name:{'correct':sum(f['correct'] for f in fields if f['field']==name),'total':len(results)} for name in FIELDS},
-            'document_exact_match':sum(r['success'] and all(f['correct'] for f in r['fields']) for r in results)/len(results) if results else None,
+            'per_field':{name:{'correct':sum(f['correct'] for f in fields if f['field']==name),'total':len(scored)} for name in FIELDS},
+            'document_exact_match':sum(all(f['correct'] for f in r['fields']) for r in scored)/len(scored) if scored else None,
             'unsupported_populations':sum(f['unsupported_population'] for f in fields),
             'failures':sum(not r['success'] for r in results), 'by_variant':by_variant, 'results':results,
-            'scope':'Live VLM extraction on authored synthetic images; no fine-tuning or clinical validation. Failed calls count as incorrect fields. Quote accuracy needs human inspection.'}
+            'scope':'Live VLM extraction on authored synthetic images; no fine-tuning or clinical validation. Failed calls are reported separately and excluded from accuracy denominators. Quote accuracy needs human inspection.'}
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser()

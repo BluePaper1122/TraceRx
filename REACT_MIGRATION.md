@@ -34,7 +34,7 @@ The sidebar, light theme, teal hero, navigation names, global demo clock, and pa
 
 ## Sessions and security boundaries
 
-Session tokens live only in React memory; a refresh starts a new synthetic workspace. Each server session has its own documents, images, audit, key, and benchmark results. Keys never appear in exports. Forget connection and reset explicitly clear the active key. Idle sessions expire after one hour and are removed when later sessions are created. A process restart loses all sessions, so export before restarting.
+The opaque ResistLens session token is stored in browser session storage, allowing the same tab to keep its synthetic workspace and server-side key through a refresh. The API key itself never enters browser storage. Each server session has its own documents, images, audit, key, and benchmark results. Keys never appear in exports. Forget connection and reset explicitly clear the active key. Idle sessions expire after one hour and are removed when later sessions are created. A process restart or deployment loses all sessions, so export before restarting.
 
 Run exactly one worker and one instance. In-memory sessions cannot be shared between workers. Public hosting must provide HTTPS. This prototype has bounded request bodies, image and session limits, and serialized per-session mutations. It has no production authentication, distributed rate limiting, durable database, or background cleanup. Use synthetic data only and bring a temporary key; do not configure a shared paid key in the deployment.
 

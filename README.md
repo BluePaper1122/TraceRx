@@ -132,7 +132,7 @@ Open **Patient workspace → Synthetic risk scorecard**. Five authored scenarios
 
 `ledger.py` demonstrates permission-scoped lookup, copy isolation, and payload fingerprint checking in memory. The transfer button loads fictional history after verification. It is not Fabric, a blockchain, cryptographic identity, encrypted transport, durable audit, hospital integration, or a compliance claim. It uses opaque fictional tokens, never hashed national identifiers.
 
-The vision benchmark contains 48 authored images with source-isolated development/test splits. It reports aggregate, non-null, per-field and imaging-condition scores; failed calls remain in denominators. Live accuracy is unmeasured until a real run is saved. See [RECONCILIATION.md](RECONCILIATION.md), [VALIDATION.md](VALIDATION.md), and [DEPLOYMENT.md](DEPLOYMENT.md) for evidence and remaining work.
+The vision benchmark contains 48 authored images with source-isolated development/test splits. It reports aggregate, non-null, per-field and imaging-condition scores. Failed API calls are labeled separately and excluded from accuracy denominators, so an unavailable provider is never presented as 0% model accuracy. Live accuracy is unmeasured until a successful run is saved. See [RECONCILIATION.md](RECONCILIATION.md), [VALIDATION.md](VALIDATION.md), and [DEPLOYMENT.md](DEPLOYMENT.md) for evidence and remaining work.
 
 ## React frontend
 

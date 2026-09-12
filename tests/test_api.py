@@ -24,7 +24,9 @@ def test_session_isolation_and_auth(client):
     assert client.delete('/api/session').status_code==200
     assert client.get('/api/state').status_code==401
 
-def test_key_never_returned_or_exported(client):
+def test_key_never_returned_or_exported(client,monkeypatch):
+    from resistlens import api
+    monkeypatch.setattr(api.OpenAIAdapter,'verify_connection',lambda self:'fake-model')
     secret='fake-test-key-not-real'
     assert client.post('/api/connection',json={'api_key':secret,'model':'fake-model'}).status_code==200
     assert secret not in client.get('/api/state').text
@@ -34,6 +36,22 @@ def test_key_never_returned_or_exported(client):
     invalid=client.post('/api/connection',json={'api_key':secret})
     assert invalid.status_code==422 and secret not in invalid.text
     client.delete('/api/connection')
+    assert not client.get('/api/state').json()['connection']['configured']
+
+def test_connection_is_not_saved_when_verification_fails(client,monkeypatch):
+    from resistlens import api
+    monkeypatch.setattr(api.OpenAIAdapter,'verify_connection',lambda self:'fake-model')
+    assert client.post('/api/connection',json={
+        'api_key':'older-fake-secret','model':'gpt-4.1-mini'}).status_code==200
+    def fail(self):
+        raise api.ExtractionError(
+            'private provider response',category='authentication',
+            public_message='The AI provider rejected the API key.')
+    monkeypatch.setattr(api.OpenAIAdapter,'verify_connection',fail)
+    r=client.post('/api/connection',json={'api_key':'fake-secret','model':'gpt-4.1-mini'})
+    assert r.status_code==422
+    assert r.json()['detail']=='The AI provider rejected the API key.'
+    assert 'fake-secret' not in r.text and 'private provider response' not in r.text
     assert not client.get('/api/state').json()['connection']['configured']
 
 def test_extract_import_requires_verification_and_explicit_replace(client):
@@ -86,5 +104,6 @@ def test_incremental_benchmark(client,monkeypatch):
     first=client.post('/api/benchmark/run',json={'ids':[rows[0]['sample_id']],'consent':True}).json()
     assert first['documents']==1
     second=client.post('/api/benchmark/run',json={'ids':[rows[1]['sample_id']],'consent':True,'restart':False}).json()
-    assert second['documents']==2 and second['failures']==2
+    assert second['documents']==2 and second['scored_documents']==0 and second['failures']==2
+    assert second['field_accuracy'] is None
     assert client.post('/api/benchmark/run',json={'ids':[rows[1]['sample_id']],'consent':True,'restart':False}).status_code==409

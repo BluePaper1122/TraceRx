@@ -45,6 +45,7 @@ class Session:
         self.pending = None
         self.key = None
         self.model = None
+        self.connection_verified_at = None
         self.transfers = {}
         self.benchmark_results = []
         self.benchmark_model = None
@@ -127,7 +128,8 @@ def state(s):
                      'findings':[f.model_dump(mode='json') for f in fs],
                      'readiness':{d.document_id:readiness(d) for d in case.documents}})
     return {'cases':rows,'offset':s.offset,'as_of':s.at.isoformat(),'audit':s.audit,
-            'connection':{'configured':bool(s.key and s.model),'model':s.model},'rule_version':RULE_VERSION}
+            'connection':{'configured':bool(s.key and s.model),'model':s.model,
+                          'verified_at':s.connection_verified_at},'rule_version':RULE_VERSION}
 
 @app.get('/api/state')
 def get_state(s=Depends(session)):
@@ -149,13 +151,24 @@ class Connection(StrictModel):
 def connect(body: Connection,s=Depends(session)):
     if not body.api_key.strip() or not body.model.strip():
         raise HTTPException(422,'Both fields are required.')
+    # Never leave an older connection presented as current after a failed replacement.
+    s.key=s.model=None
+    s.connection_verified_at=None
+    candidate=OpenAIAdapter(api_key=body.api_key.strip(),model=body.model.strip())
+    try:
+        verified_model=candidate.verify_connection()
+    except ExtractionError as exc:
+        raise HTTPException(422,exc.public_message) from None
     s.key=body.api_key.strip(); s.model=body.model.strip()
-    return {'configured':True,'model':s.model}
+    s.connection_verified_at=datetime.now(timezone.utc).isoformat()
+    record(s,'AI connection verified',model=verified_model)
+    return {'configured':True,'model':s.model,'verified_at':s.connection_verified_at}
 
 @app.delete('/api/connection')
 def forget(s=Depends(session)):
     s.key=s.model=None
-    return {'configured':False,'model':None}
+    s.connection_verified_at=None
+    return {'configured':False,'model':None,'verified_at':None}
 
 def adapter(s):
     if not s.key or not s.model:
@@ -196,7 +209,8 @@ def extract(body: Extract,s=Depends(session)):
     try:
         doc=TextAdapter().extract(body.text) if body.mode=='text' else (adapter(s) if body.mode=='live' else DemoAdapter()).extract(raw)
     except ExtractionError as exc:
-        raise HTTPException(422,str(exc)) from None
+        detail = exc.public_message if body.mode=='live' else str(exc)
+        raise HTTPException(422,detail) from None
     attempt=secrets.token_urlsafe(16)
     s.pending=(attempt,doc,raw)
     record(s,'Extraction completed',origin=doc.origin)

@@ -167,15 +167,36 @@ function App() {
   }
   useEffect(() => {
     let active = true;
-    api("/session", {})
-      .then(async (x) => {
-        const d = await api("/state", undefined, "GET", false, x.token);
-        if (active) {
-          T(x.token);
-          S(d);
+    async function start() {
+      let sessionToken = sessionStorage.getItem("resistlens-session");
+      if (sessionToken) {
+        try {
+          const existing = await api(
+            "/state",
+            undefined,
+            "GET",
+            false,
+            sessionToken,
+          );
+          if (active) {
+            T(sessionToken);
+            S(existing);
+          }
+          return;
+        } catch {
+          sessionStorage.removeItem("resistlens-session");
         }
-      })
-      .catch((e) => E(e.message));
+      }
+      const created = await api("/session", {});
+      sessionToken = created.token;
+      const fresh = await api("/state", undefined, "GET", false, sessionToken);
+      if (active) {
+        sessionStorage.setItem("resistlens-session", sessionToken);
+        T(sessionToken);
+        S(fresh);
+      }
+    }
+    start().catch((e) => E(e.message));
     return () => {
       active = false;
     };
@@ -249,7 +270,7 @@ function App() {
             <small>{state.as_of.replace("T", " ")}</small>
             <p className="muted">
               {state.connection.configured
-                ? "AI connection saved for this session"
+                ? "AI connection verified for this session"
                 : "Demo mode · no AI key connected"}
             </p>
             <Check checked={reset} onChange={R}>
@@ -260,6 +281,7 @@ function App() {
               onClick={() =>
                 run(async () => {
                   await api("/session", undefined, "DELETE");
+                  sessionStorage.removeItem("resistlens-session");
                   location.reload();
                 })
               }
@@ -873,8 +895,12 @@ function Connection({ api, state, setState, run, busy, success }) {
     <>
       <p>
         Your key is held only in the server’s temporary session and is excluded
-        from exports. Refreshing starts a new session; use Forget connection to
-        clear the current key immediately.
+        from exports. This browser tab keeps the session through a refresh for
+        up to one hour. Use Forget connection to clear the key immediately.
+      </p>
+      <p className="muted">
+        Saving verifies the key and selected model without transmitting a
+        benchmark image. A live extraction is the final end-to-end check.
       </p>
       <fieldset disabled={busy}>
         <label>
@@ -896,16 +922,21 @@ function Connection({ api, state, setState, run, busy, success }) {
             disabled={!key.trim() || !model.trim()}
             onClick={() =>
               run(async () => {
-                await api("/connection", { api_key: key, model });
+                const submittedKey = key;
                 K("");
-                setState(await api("/state"));
-                success(
-                  "Connection saved. A live extraction will verify provider access.",
-                );
+                try {
+                  await api("/connection", {
+                    api_key: submittedKey,
+                    model: model.trim(),
+                  });
+                  success("Connection and model access verified.");
+                } finally {
+                  setState(await api("/state"));
+                }
               })
             }
           >
-            Save connection
+            Save and verify connection
           </button>
           <button
             onClick={() =>
@@ -969,8 +1000,8 @@ function Benchmark({ api, state, run, busy, download }) {
     <>
       <p>
         Measure live extraction against authored synthetic ground truth. Each
-        selected image makes a paid API call. Failed calls count as incorrect
-        fields.
+        selected image makes a paid API call. Failed calls are reported
+        separately and are not treated as model accuracy.
       </p>
       {error && <p role="alert">{error}</p>}
       <fieldset disabled={busy}>
@@ -1048,33 +1079,64 @@ function Benchmark({ api, state, run, busy, download }) {
       </fieldset>
       {result && (
         <>
-          <Metrics
-            values={{
-              "Field accuracy": (100 * result.field_accuracy).toFixed(1) + "%",
-              "Non-null accuracy":
-                (100 * result.non_null_field_accuracy).toFixed(1) + "%",
-              "Exact documents":
-                (100 * result.document_exact_match).toFixed(1) + "%",
-              Failures: result.failures,
-            }}
-          />
+          {result.failures > 0 && (
+            <div className="notice warn" role="alert">
+              <strong>
+                {result.scored_documents === 0
+                  ? "No accuracy result"
+                  : "Some API requests failed"}
+              </strong>
+              <p>
+                {result.scored_documents === 0
+                  ? "The model returned no scoreable extraction. The percentages are withheld because this was an API failure, not a 0% extraction."
+                  : `${result.failures} request(s) failed and were excluded from the accuracy calculation.`}
+              </p>
+              <ul>
+                {result.results
+                  .filter((r) => !r.success)
+                  .map((r) => (
+                    <li key={r.sample_id}>
+                      <strong>{r.sample_id}</strong>: {r.error}
+                      {r.error_type && ` (${r.error_type})`}
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          )}
+          {result.scored_documents > 0 && (
+            <Metrics
+              values={{
+                "Field accuracy":
+                  (100 * result.field_accuracy).toFixed(1) + "%",
+                "Non-null accuracy":
+                  (100 * result.non_null_field_accuracy).toFixed(1) + "%",
+                "Exact documents":
+                  (100 * result.document_exact_match).toFixed(1) + "%",
+                "Scored documents": result.scored_documents,
+              }}
+            />
+          )}
           <Table
             rows={result.results.map((r) => ({
               Image: r.sample_id,
-              Success: r.success,
+              Status: r.success ? "Scored" : "API failed",
               Seconds: r.seconds,
-              Correct:
-                r.fields.filter((f) => f.correct).length +
-                "/" +
-                r.fields.length,
+              Result: r.success
+                ? r.fields.filter((f) => f.correct).length +
+                  "/" +
+                  r.fields.length +
+                  " fields correct"
+                : r.error,
             }))}
           />
-          {result.results.map((r) => (
-            <details key={r.sample_id}>
-              <summary>{r.sample_id}: field comparisons</summary>
-              <Table rows={r.fields} />
-            </details>
-          ))}
+          {result.results
+            .filter((r) => r.success)
+            .map((r) => (
+              <details key={r.sample_id}>
+                <summary>{r.sample_id}: field comparisons</summary>
+                <Table rows={r.fields} />
+              </details>
+            ))}
           <button onClick={() => save(result, "vision-results.json")}>
             Download results
           </button>
