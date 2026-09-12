@@ -1,5 +1,7 @@
 # Current execution checkpoint — 2026-09-12
 
+**Note** This is a reference page for building the resistlens. This will probably get archived later on. Don't put anything important or change something significantly here!
+
 This checkpoint supersedes implementation-status claims in the historical handoff below. Read RECONCILIATION.md and VALIDATION.md for the audited current state.
 
 - Preserved and tested the existing local benchmark, live UI and adapter changes; incorporated remote README commit 5d997b9 without resetting the working tree.
