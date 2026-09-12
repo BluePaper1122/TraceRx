@@ -1,3 +1,7 @@
+# Updated integrated demo
+
+Use the three-minute sequence in [RECONCILIATION.md](RECONCILIATION.md) for the new scorecard and mock ledger. The workflow-only script below remains available for the shorter offline fallback. Live accuracy is unmeasured until an actual report is saved; score points are illustrative.
+
 # ResistLens · Demo script for Yiyi
 
 ## Before presenting

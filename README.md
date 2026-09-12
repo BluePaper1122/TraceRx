@@ -23,7 +23,7 @@ On Windows activate with `.venv\Scripts\activate` instead. Streamlit prints the 
 
 ## What is included
 
-- Branded Streamlit interface with five workspaces and responsive native layouts.
+- Branded Streamlit interface with eight navigation destinations and responsive native layouts.
 - Multi-case work queue, state/unit filtering, counts, queue CSV and session export.
 - Six synthetic scenarios: unreviewed final evidence, documented review, preliminary evidence, ended order, unreadable timestamp, and an amended report requiring a new review.
 - Time simulation, ordered event timeline, exact order/report review linkage and source-linked explanations.
@@ -31,7 +31,7 @@ On Windows activate with `.venv\Scripts\activate` instead. Streamlit prints the 
 - Field-level quote/page provenance, content hashes, transparent readiness scoring and human verification gate.
 - PNG/JPEG upload, bundled training images, local labeled-text extraction, editable structured JSON and explicit replacement of existing events.
 - Source-linked review documentation that immediately re-evaluates the work queue.
-- An isolated optional OpenAI vision adapter with schema parsing, timeouts, bounded retries, validation and sanitized failures.
+- An isolated optional OpenAI vision adapter with schema parsing, a 45-second timeout, zero SDK retries, validation and sanitized failures.
 - Synthetic extraction/rule evaluation, tests for temporal edge cases, and Streamlit UI interaction tests.
 - Downloadable training document pack, demo script and optional FHIR/RxNorm interface seams.
 
@@ -79,16 +79,11 @@ The record is assumed to be complete only for this simulation. No detected revie
 
 Readiness is `required-field source coverage × minimum reported field confidence × 100`. Required fields include event identity, kind, patient/encounter, time and event-specific values; a present order end also needs provenance. The 0.80 cutoff is an engineering demo choice, **not a clinically validated threshold**. AI confidence is self-reported and uncalibrated. Synthetic fixture confidence is authored as 1.0. Human verification is a separate gate and does not inflate confidence. Text quote presence is checked literally, and labeled quotes are checked against their field values; image quote accuracy requires visual human inspection. A valid quote alone cannot prove its semantic interpretation.
 
-## Optional live AI setup
+## Live AI setup
 
-```bash
-python -m pip install -r requirements-ai.txt
-export OPENAI_API_KEY='your-key'
-export OPENAI_MODEL='your-accessible-image-and-structured-output-model'
-python -m streamlit run app.py
-```
+The OpenAI SDK is included in core dependencies. In the app, open **AI connection**, enter your own key and compatible model ID, and save for this session. Then open **Vision benchmark**, select development images, confirm transmission/charges, and run. Saving alone makes no request. The UI does not use a server-wide API key. Forget the key when finished; keys are excluded from exports.
 
-Select **Document studio → Live AI vision**, inspect the selected synthetic image, confirm that it is synthetic and may be sent, then click **Extract document**. The app does not automatically load `.env`; `.env.example` documents the names. Keep secrets outside Git. Choose a compatible model available to your account; no default model or availability assumption is embedded.
+CLI callers can set `OPENAI_API_KEY` and `OPENAI_MODEL` in their environment. No default model or automatic `.env` loading exists. Do not put keys in Git or chat.
 
 The adapter uses `client.responses.parse`, `text_format=ClinicalEvent`, a base64 `input_image`, and `store=False`. See the official [Structured Outputs guide](https://platform.openai.com/docs/guides/structured-outputs) and [image input guide](https://platform.openai.com/docs/guides/images-vision). These were consulted during implementation. `store=False` is a response-storage setting, not a promise about all provider retention. This project is synthetic-data-only regardless.
 
@@ -128,3 +123,13 @@ Read [DEMO_SCRIPT.md](DEMO_SCRIPT.md) for a three-minute walkthrough, a longer f
 This is a local, single-user hackathon application. The session export includes before/after records for imported event replacements. The evidence ZIP also includes retained uploaded source images. State and audit history live in the Streamlit session and reset on session loss or server restart. Export before closing. There is no authentication, durable database, immutable audit log, background hospital polling, PDF ingestion or production deployment. Upload size is capped at 8 MB and images at 16 million pixels. Uploaded source images are kept only in session memory. HTML in source fields is escaped before timeline display.
 
 `FHIRSource` and `RxNormResolver` are extension protocols, not working clinical connectors. A real integration would need explicit validation of source statuses, medication classification, report versions, encounter matching, timezone semantics, durable provenance and access controls. No RxNorm IDs or clinical mappings are invented here.
+
+## Synthetic resistance score and mock ledger
+
+Open **Patient workspace → Synthetic risk scorecard**. Five authored scenarios demonstrate not-tested data, aged positive evidence, transfer-history unavailability, MRSA persistence, and dated clearance. These inputs are separate from timeline extraction. No risk fields are inferred from existing workflow events.
+
+`risk_models.py` adds strict, timezone-aware risk contracts without changing `ClinicalEvent`. `risk_engine.py` applies the supplied plan's illustrative additive weights with explicit organism/drug/context matching, decay, future exclusion, recent exposure handling, and source-linked arithmetic. The result is a **synthetic score**, not a calibrated resistance or treatment-failure probability. A missing baseline is labeled and uses the plan's 15-point fallback. A missing test is never silently treated as negative. No drug rankings or recommendations are produced.
+
+`ledger.py` demonstrates permission-scoped lookup, copy isolation, and payload fingerprint checking in memory. The transfer button loads fictional history after verification. It is not Fabric, a blockchain, cryptographic identity, encrypted transport, durable audit, hospital integration, or a compliance claim. It uses opaque fictional tokens, never hashed national identifiers.
+
+The vision benchmark contains 48 authored images with source-isolated development/test splits. It reports aggregate, non-null, per-field and imaging-condition scores; failed calls remain in denominators. Live accuracy is unmeasured until a real run is saved. See [RECONCILIATION.md](RECONCILIATION.md), [VALIDATION.md](VALIDATION.md), and [DEPLOYMENT.md](DEPLOYMENT.md) for evidence and remaining work.

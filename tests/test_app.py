@@ -65,3 +65,53 @@ def test_guided_walkthrough_uses_real_rule_engine():
     next(b for b in app.button if b.label == 'Finish walkthrough').click().run()
     next(b for b in app.button if b.label == 'Restart walkthrough').click().run()
     assert any('No trigger' in x.value for x in app.info)
+
+def test_live_pages_empty_selection_and_session_connection():
+    app=AppTest.from_file(APP,default_timeout=30).run()
+    app.sidebar.radio[0].set_value('AI connection').run()
+    assert not app.exception
+    app.text_input[0].set_value('synthetic-test-key-not-real')
+    app.text_input[1].set_value('fake-model')
+    next(b for b in app.button if b.label=='Save connection for this session').click().run()
+    assert app.session_state['live_model']=='fake-model'
+    app.sidebar.radio[0].set_value('Vision benchmark').run()
+    assert not app.exception
+    app.multiselect[0].set_value([]).run()
+    assert next(b for b in app.button if b.label=='Run real VLM evaluation').disabled
+    other=AppTest.from_file(APP,default_timeout=30).run()
+    assert 'live_key' not in other.session_state
+    app.sidebar.radio[0].set_value('AI connection').run()
+    next(b for b in app.button if b.label=='Forget my API key').click().run()
+    assert 'live_key' not in app.session_state
+
+def test_trap_scorecard_and_transfer_lookup():
+    app=AppTest.from_file(APP,default_timeout=30).run()
+    app.sidebar.radio[0].set_value('Patient workspace').run()
+    selector=next(s for s in app.selectbox if s.label=='Synthetic risk scenario')
+    for scenario in ['Aged positive','MRSA persistence','MRSA clearance','Transfer records unavailable']:
+        selector.set_value(scenario).run()
+        assert not app.exception
+        selector=next(s for s in app.selectbox if s.label=='Synthetic risk scenario')
+    assert any('Records Unavailable' in e.value for e in app.error)
+    next(b for b in app.button if b.label=='Cross-hospital ledger lookup (mock)').click().run()
+    assert not app.exception
+    assert not any('Records Unavailable' in e.value for e in app.error)
+    assert any('fingerprint verified' in s.value for s in app.success)
+    assert next(m for m in app.metric if m.label=='Illustrative score / 100').value=='60.0'
+    assert len(app.session_state['cases'][0].documents)==2
+
+def test_import_new_patient_and_reject_conflicting_encounter():
+    from resistlens.fixtures import make_document, DEMO_NOW
+    for patient,encounter,accepted in [('SYN-NEW','SYN-VISIT',True),('DEMO-101','OTHER-VISIT',False)]:
+        app=AppTest.from_file(APP,default_timeout=30).run()
+        app.sidebar.radio[0].set_value('Document studio').run()
+        next(r for r in app.radio if r.label=='Extraction mode').set_value('Local synthetic text').run()
+        doc=make_document(patient,encounter,'order','SYN-NEW-ORDER',DEMO_NOW.isoformat(),medication='Synthetic drug')
+        app.text_area[0].set_value(doc.text)
+        next(b for b in app.button if b.label=='Extract document').click().run()
+        next(c for c in app.checkbox if c.label.startswith('I checked')).check().run()
+        next(b for b in app.button if b.label=='Verify and add to matching case').click().run()
+        assert not app.exception
+        assert len(app.session_state['cases'])==(7 if accepted else 6)
+        if not accepted:
+            assert any('different encounter' in e.value for e in app.error)

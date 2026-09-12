@@ -2,3 +2,4 @@ streamlit>=1.50,<2
 pydantic>=2.10,<3
 Pillow>=11,<13
 pandas>=2.2,<4
+openai>=1.80,<3

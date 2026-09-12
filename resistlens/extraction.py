@@ -76,9 +76,14 @@ class TextAdapter:
 
 class OpenAIAdapter:
     name = 'Live OpenAI vision'
+
+    def __init__(self, api_key=None, model=None):
+        self._api_key = api_key
+        self.model = model or os.getenv('OPENAI_MODEL')
+
     def extract(self, data: bytes) -> Document:
         normalized = validate_image(data)
-        key, model = os.getenv('OPENAI_API_KEY'), os.getenv('OPENAI_MODEL')
+        key, model = self._api_key or os.getenv('OPENAI_API_KEY'), self.model
         if not key or not model:
             raise ExtractionError('Set OPENAI_API_KEY and OPENAI_MODEL to use live extraction, or choose offline fixture replay.')
         try:
@@ -94,7 +99,7 @@ one verbatim quote, page 1, and confidence between 0 and 1. Event IDs and report
 IDs must come from the source. Do not create a review from generic statements.
 If this is not a supported single-event training document, refuse extraction.'''
         try:
-            client = OpenAI(api_key=key, timeout=35, max_retries=1)
+            client = OpenAI(api_key=key, timeout=45, max_retries=0)
             response = client.responses.parse(
                 model=model, store=False,
                 input=[{'role': 'user', 'content': [

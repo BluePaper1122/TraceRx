@@ -15,6 +15,7 @@ from resistlens.engine import evaluate, case_state, RULE_VERSION
 from resistlens.extraction import DemoAdapter, TextAdapter, OpenAIAdapter, ExtractionError
 from resistlens.evaluation import run_evaluation
 from resistlens.integrations import integration_status
+from resistlens.live_ui import connection_page, benchmark_page, live_adapter
 
 st.set_page_config(page_title='ResistLens · Evidence to action', page_icon='◉', layout='wide')
 st.markdown('''<style>
@@ -42,7 +43,7 @@ def audit(action, detail, **changes):
 with st.sidebar:
     st.markdown('## ◉ ResistLens')
     st.caption('ANTIMICROBIAL STEWARDSHIP LAB')
-    page = st.radio('Navigate', ['Start here', 'Overview', 'Patient workspace', 'Document studio', 'Evaluation lab', 'About & demo'], label_visibility='collapsed')
+    page = st.radio('Navigate', ['Start here', 'Overview', 'Patient workspace', 'Document studio', 'Evaluation lab', 'AI connection', 'Vision benchmark', 'About & demo'], label_visibility='collapsed')
     st.divider()
     st.markdown('**Demo clock**')
     offset = st.slider('Hours since Sep 10, 06:00 UTC', 0, 48, 36)
@@ -51,7 +52,7 @@ with st.sidebar:
     st.caption('Move time to watch evidence arrive. All timing is a simulation, not a clinical deadline.')
     st.divider()
     st.success('Offline demo ready')
-    st.caption('Live adapter configured' if os.getenv('OPENAI_API_KEY') and os.getenv('OPENAI_MODEL') else 'No API key needed')
+    st.caption('Live adapter configured' if st.session_state.get('live_key') and st.session_state.get('live_model') else 'No API key needed')
     reset = st.checkbox('Allow resetting this session')
     if st.button('Reset demo', disabled=not reset, width='stretch'):
         for key in list(st.session_state.keys()):
@@ -103,6 +104,12 @@ if page == 'Start here':
         st.rerun()
     st.markdown('**Where to go next:** Open the left navigation (the » button at the top left if it is hidden). Choose **Patient workspace** to document your own synthetic review, **Document studio** to try a sample image, or **Overview** for the full queue.')
     st.caption('No API key, upload or typing is needed for this walkthrough. All reviews here are simulated; no medication is changed.')
+
+elif page == 'AI connection':
+    connection_page()
+
+elif page == 'Vision benchmark':
+    benchmark_page()
 
 elif page == 'Overview':
     st.subheader('Stewardship overview')
@@ -158,12 +165,15 @@ elif page == 'Patient workspace':
         if f.hours_open is not None:
             message += f' Evidence age: {f.hours_open:g} hours (not an urgency score).'
         {'Needs review': st.warning, 'Needs verification': st.error, 'Reviewed': st.success, 'No trigger': st.info}[f.state](message)
-    timeline, evidence_tab, review_tab = st.tabs(['Event timeline', 'Evidence & reasoning', 'Document a review'])
+    timeline, evidence_tab, review_tab, risk_tab = st.tabs(['Event timeline', 'Evidence & reasoning', 'Document a review', 'Synthetic risk scorecard'])
+    with risk_tab:
+        from resistlens.risk_ui import scorecard
+        scorecard(selected, as_of)
     with timeline:
         for d in sorted(case.documents, key=lambda d: d.event.occurred_at or datetime.max.replace(tzinfo=timezone.utc)):
             e = d.event
             future = bool(e.occurred_at and e.occurred_at > as_of)
-            stamp = e.occurred_at.strftime('%d %b · %H:%M UTC') if e.occurred_at else 'Time unreadable'
+            stamp = e.occurred_at.astimezone(timezone.utc).strftime('%d %b · %H:%M UTC') if e.occurred_at else 'Time unreadable'
             detail = e.medication or e.result or e.review_note or 'Incomplete record'
             st.markdown(f'<div class="timeline"><div class="stamp">{escape(stamp)} {"· FUTURE / excluded" if future else ""}</div><div class="event">{escape(e.kind.title())} · {escape(e.event_id)}</div><div class="detail">{escape(detail)}</div></div>', unsafe_allow_html=True)
         st.caption('Order end is exclusive. Future events are shown for the demo but excluded from evaluation.')
@@ -244,7 +254,7 @@ elif page == 'Document studio':
         st.session_state.pop('pending', None)
         try:
             with st.spinner('Extracting and validating fields…'):
-                adapter = {'Offline fixture replay': DemoAdapter, 'Local synthetic text': TextAdapter, 'Live AI vision': OpenAIAdapter}[mode]()
+                adapter = live_adapter() if mode == 'Live AI vision' else {'Offline fixture replay': DemoAdapter, 'Local synthetic text': TextAdapter}[mode]()
                 document = adapter.extract(text_input if mode == 'Local synthetic text' else source_data)
             st.session_state.pending = {'token': source_token, 'doc': document, 'attempt': uuid.uuid4().hex}
             audit('Extraction completed', f'{mode}; source {document.sha256[:12]}')
@@ -278,8 +288,12 @@ elif page == 'Document studio':
                 if not quality['eligible']:
                     raise ValueError('; '.join(quality['problems']))
                 target = next((c for c in cases if c.patient_id == event.patient_id and c.encounter_id == event.encounter_id), None)
+                if target is None and any(c.patient_id == event.patient_id for c in cases):
+                    raise ValueError('This patient already has a different encounter in the workspace. Use a distinct synthetic patient ID or a new session; encounters are never merged.')
                 if target is None:
-                    raise ValueError('Patient and encounter must match a bundled synthetic case.')
+                    from resistlens.models import Case
+                    target = Case(patient_id=event.patient_id, encounter_id=event.encounter_id, label='Imported synthetic case', unit='Imported', story='Source-verified synthetic documents imported through Document studio.', documents=[])
+                    cases.append(target)
                 previous = [d for d in target.documents if d.event.event_id == event.event_id]
                 if previous and not replace:
                     raise ValueError('This event already exists. Select replacement explicitly or use a new source event.')

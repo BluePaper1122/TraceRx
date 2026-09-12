@@ -4,3 +4,7 @@ __pycache__/
 .env
 .streamlit/secrets.toml
 *.log
+
+.DS_Store
+benchmark-result*.json
+vision-results*.json
