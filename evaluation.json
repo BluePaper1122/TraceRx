@@ -1,0 +1,152 @@
+{
+  "scope": "Local text parser on synthetic labeled text; NOT VLM accuracy",
+  "rule_accuracy": 1.0,
+  "field_accuracy": 1.0,
+  "document_exact_match": 1.0,
+  "rules": [
+    {
+      "case": "DEMO-101",
+      "expected": "Needs review",
+      "actual": "Needs review",
+      "pass": true
+    },
+    {
+      "case": "DEMO-102",
+      "expected": "Reviewed",
+      "actual": "Reviewed",
+      "pass": true
+    },
+    {
+      "case": "DEMO-103",
+      "expected": "No trigger",
+      "actual": "No trigger",
+      "pass": true
+    },
+    {
+      "case": "DEMO-104",
+      "expected": "No trigger",
+      "actual": "No trigger",
+      "pass": true
+    },
+    {
+      "case": "DEMO-105",
+      "expected": "Needs verification",
+      "actual": "Needs verification",
+      "pass": true
+    },
+    {
+      "case": "DEMO-106",
+      "expected": "Needs review",
+      "actual": "Needs review",
+      "pass": true
+    }
+  ],
+  "extraction": [
+    {
+      "document": "doc-DEMO-101-O1",
+      "matched_fields": 11,
+      "total_fields": 11,
+      "exact_match": true,
+      "error": null
+    },
+    {
+      "document": "doc-DEMO-101-M1",
+      "matched_fields": 11,
+      "total_fields": 11,
+      "exact_match": true,
+      "error": null
+    },
+    {
+      "document": "doc-DEMO-102-O1",
+      "matched_fields": 11,
+      "total_fields": 11,
+      "exact_match": true,
+      "error": null
+    },
+    {
+      "document": "doc-DEMO-102-M1",
+      "matched_fields": 11,
+      "total_fields": 11,
+      "exact_match": true,
+      "error": null
+    },
+    {
+      "document": "doc-DEMO-102-V1",
+      "matched_fields": 11,
+      "total_fields": 11,
+      "exact_match": true,
+      "error": null
+    },
+    {
+      "document": "doc-DEMO-103-O1",
+      "matched_fields": 11,
+      "total_fields": 11,
+      "exact_match": true,
+      "error": null
+    },
+    {
+      "document": "doc-DEMO-103-M1",
+      "matched_fields": 11,
+      "total_fields": 11,
+      "exact_match": true,
+      "error": null
+    },
+    {
+      "document": "doc-DEMO-104-O1",
+      "matched_fields": 11,
+      "total_fields": 11,
+      "exact_match": true,
+      "error": null
+    },
+    {
+      "document": "doc-DEMO-104-M1",
+      "matched_fields": 11,
+      "total_fields": 11,
+      "exact_match": true,
+      "error": null
+    },
+    {
+      "document": "doc-DEMO-105-O1",
+      "matched_fields": 11,
+      "total_fields": 11,
+      "exact_match": true,
+      "error": null
+    },
+    {
+      "document": "doc-DEMO-105-M1",
+      "matched_fields": 11,
+      "total_fields": 11,
+      "exact_match": true,
+      "error": null
+    },
+    {
+      "document": "doc-DEMO-106-O1",
+      "matched_fields": 11,
+      "total_fields": 11,
+      "exact_match": true,
+      "error": null
+    },
+    {
+      "document": "doc-DEMO-106-M1",
+      "matched_fields": 11,
+      "total_fields": 11,
+      "exact_match": true,
+      "error": null
+    },
+    {
+      "document": "doc-DEMO-106-V1",
+      "matched_fields": 11,
+      "total_fields": 11,
+      "exact_match": true,
+      "error": null
+    },
+    {
+      "document": "doc-DEMO-106-M2",
+      "matched_fields": 11,
+      "total_fields": 11,
+      "exact_match": true,
+      "error": null
+    }
+  ],
+  "limitations": "Small authored regression set. Not clinical validation, a representative document benchmark, or calibrated confidence."
+}

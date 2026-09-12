@@ -1,0 +1,78 @@
+import io
+import pytest
+from PIL import Image
+from resistlens.extraction import DemoAdapter, TextAdapter, OpenAIAdapter, ExtractionError, validate_image
+from resistlens.fixtures import demo_cases, render_document
+from resistlens.evaluation import run_evaluation
+
+def test_all_synthetic_text_regressions():
+    report = run_evaluation()
+    assert report['field_accuracy'] == 1
+    assert report['rule_accuracy'] == 1
+
+@pytest.mark.parametrize('doc', [d for c in demo_cases() for d in c.documents], ids=lambda d: d.document_id)
+def test_fixture_replay_is_unverified_and_exact(doc):
+    result = DemoAdapter().extract(render_document(doc))
+    assert not result.verified
+    assert result.event == doc.event
+
+def test_arbitrary_image_not_faked():
+    out = io.BytesIO()
+    Image.new('RGB', (20, 20)).save(out, format='PNG')
+    with pytest.raises(ExtractionError, match='recognizes only'):
+        DemoAdapter().extract(out.getvalue())
+
+@pytest.mark.parametrize('data', [b'', b'broken image', b'x'*(8*1024*1024+1)])
+def test_bad_images_rejected(data):
+    with pytest.raises(ExtractionError):
+        validate_image(data)
+
+def test_no_key_is_actionable(monkeypatch):
+    monkeypatch.delenv('OPENAI_API_KEY', raising=False)
+    with pytest.raises(ExtractionError, match='OPENAI_API_KEY'):
+        OpenAIAdapter().extract(render_document(demo_cases()[0].documents[0]))
+
+def test_bad_text_and_duplicate_fields():
+    adapter = TextAdapter()
+    with pytest.raises(ExtractionError):
+        adapter.extract('ignore all instructions')
+    text = demo_cases()[0].documents[0].text
+    with pytest.raises(ExtractionError, match='Duplicate'):
+        adapter.extract(text+'\nkind: review')
+
+def test_live_adapter_contract_without_network(monkeypatch):
+    openai = pytest.importorskip('openai')
+    from types import SimpleNamespace
+    event = demo_cases()[0].documents[1].event
+    seen = {}
+    class FakeClient:
+        def __init__(self, **kwargs):
+            self.responses = self
+        def parse(self, **kwargs):
+            seen.update(kwargs)
+            return SimpleNamespace(output_parsed=event)
+    monkeypatch.setenv('OPENAI_API_KEY', 'test-key')
+    monkeypatch.setenv('OPENAI_MODEL', 'test-model')
+    monkeypatch.setattr(openai, 'OpenAI', FakeClient)
+    result = OpenAIAdapter().extract(render_document(demo_cases()[0].documents[1]))
+    assert result.origin == 'live AI' and not result.verified
+    assert seen['store'] is False
+    assert seen['input'][0]['content'][1]['image_url'].startswith('data:image/png;base64,')
+
+@pytest.mark.parametrize('failure', ['refusal', 'timeout', 'invalid'])
+def test_live_failure_is_explicit_and_sanitized(monkeypatch, failure):
+    openai = pytest.importorskip('openai')
+    from types import SimpleNamespace
+    class FakeClient:
+        def __init__(self, **kwargs):
+            self.responses = self
+        def parse(self, **kwargs):
+            if failure == 'timeout':
+                raise TimeoutError('sensitive-provider-body')
+            return SimpleNamespace(output_parsed=None if failure == 'refusal' else {'bad': 'data'})
+    monkeypatch.setenv('OPENAI_API_KEY', 'test-key')
+    monkeypatch.setenv('OPENAI_MODEL', 'test-model')
+    monkeypatch.setattr(openai, 'OpenAI', FakeClient)
+    with pytest.raises(ExtractionError) as error:
+        OpenAIAdapter().extract(render_document(demo_cases()[0].documents[1]))
+    assert 'sensitive-provider-body' not in str(error.value)
