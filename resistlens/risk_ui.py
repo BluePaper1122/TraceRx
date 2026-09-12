@@ -23,8 +23,8 @@ def demo_profile(patient_id, scenario):
 
 def scorecard(patient_id, as_of):
     st.subheader('Synthetic resistance scorecard')
-    st.info('Illustrative rules from the implementation plan. This score is not a measured probability of resistance or treatment failure and must not guide treatment.')
-    st.caption('These separate, authored trap-case inputs are not extracted from the patient timeline. The demo clock controls evaluation.')
+    st.info('This illustrative score is not a measured probability of resistance or treatment failure and must not guide treatment.')
+    st.caption('Explore authored synthetic scenarios, separate from the patient timeline. The demo clock controls evaluation.')
     scenario = st.selectbox('Synthetic risk scenario',SCENARIOS,key='risk_scenario_'+patient_id)
     profile = demo_profile(patient_id,scenario)
     if scenario == 'Transfer records unavailable':

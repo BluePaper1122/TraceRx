@@ -42,7 +42,7 @@ def audit(action, detail, **changes):
 
 with st.sidebar:
     st.markdown('## ◉ ResistLens')
-    st.caption('ANTIMICROBIAL STEWARDSHIP LAB')
+    st.caption('ANTIMICROBIAL STEWARDSHIP')
     page = st.radio('Navigate', ['Start here', 'Overview', 'Patient workspace', 'Document studio', 'Evaluation lab', 'AI connection', 'Vision benchmark', 'About & demo'], label_visibility='collapsed')
     st.divider()
     st.markdown('**Demo clock**')
@@ -60,7 +60,7 @@ with st.sidebar:
         st.rerun()
     st.caption('Session memory only. Export before closing or resetting.')
 
-st.markdown('''<div class="hero"><div class="eyebrow">HACKRICE · SYNTHETIC WORKFLOW DEMO</div>
+st.markdown('''<div class="hero"><div class="eyebrow">RESISTLENS · EVIDENCE REVIEW</div>
 <h1>Close the evidence-to-review gap.</h1><p>New microbiology evidence. An active antimicrobial order. A clear, traceable answer to whether review was documented.</p>
 <span class="tag">Source-linked evidence</span><span class="tag">Deterministic workflow rules</span><span class="tag">Human verification</span></div>''', unsafe_allow_html=True)
 st.caption('Research demonstration only • Synthetic data • Does not diagnose, prescribe, or recommend medication changes. “No trigger” does not establish clinical safety.')
@@ -68,8 +68,8 @@ cases = st.session_state.cases
 all_findings = {c.patient_id: evaluate(c, as_of) for c in cases}
 
 if page == 'Start here':
-    st.subheader('Start here · your first demonstration')
-    st.write('This is the app. You do not need GitHub or VS Code to use it. Follow these four steps; each one uses the real workflow engine on an isolated synthetic example.')
+    st.subheader('Explore the review workflow')
+    st.write('Follow a synthetic case from an active order to new evidence and a documented review.')
     st.caption('This walkthrough has its own clock and example. It does not change your patient workspace or use the sidebar clock.')
     step = st.session_state.get('guide_step', 0)
     st.progress((step+1)/4, text=f'Step {step+1} of 4')
@@ -77,7 +77,7 @@ if page == 'Start here':
     descriptions = [
         'The synthetic order started yesterday. At 09:00 today the final report has not arrived. There is no review trigger yet.',
         'At 10:00 a final microbiology report arrives. The order is active, but there is no linked review in this example. The yellow message identifies that documentation gap.',
-        'You clicked Record a demo review. The walkthrough added a clearly labeled simulated review linked to this exact report and order. The engine now recognizes that documentation.',
+        'A simulated review is now linked to this exact report and order. The workflow recognizes the documented review.',
         'The story is: new evidence → visible review gap → documented review. You can repeat it or use the navigation on the left to explore the full app.'
     ]
     st.markdown('### '+titles[step])
@@ -102,7 +102,7 @@ if page == 'Start here':
     if step > 0 and st.button('Restart walkthrough'):
         st.session_state.guide_step = 0
         st.rerun()
-    st.markdown('**Where to go next:** Open the left navigation (the » button at the top left if it is hidden). Choose **Patient workspace** to document your own synthetic review, **Document studio** to try a sample image, or **Overview** for the full queue.')
+    st.markdown('Explore **Patient workspace** to review evidence, **Document studio** to extract a synthetic report, or **Overview** to see the full queue.')
     st.caption('No API key, upload or typing is needed for this walkthrough. All reviews here are simulated; no medication is changed.')
 
 elif page == 'AI connection':
@@ -225,7 +225,7 @@ elif page == 'Patient workspace':
 
 elif page == 'Document studio':
     st.subheader('From document to verifiable evidence')
-    st.write('Try a bundled training report, inspect the structured extraction, then confirm its source before adding it to a case.')
+    st.write('Extract a synthetic report, inspect the structured fields, and verify the source before adding it to a case.')
     samples = [d for c in demo_cases() for d in c.documents]
     sample_id = st.selectbox('Bundled sample', range(len(samples)), format_func=lambda i: samples[i].title)
     sample = samples[sample_id]
@@ -307,7 +307,7 @@ elif page == 'Document studio':
                 st.error(f'Not imported: {exc}')
 
 elif page == 'Evaluation lab':
-    st.subheader('Make the demonstration measurable')
+    st.subheader('Extraction & workflow evaluation')
     st.write('Run repeatable extraction and workflow checks against the original synthetic fixtures. Session edits do not alter the ground truth.')
     report = run_evaluation()
     a, b, c = st.columns(3)
@@ -319,13 +319,13 @@ elif page == 'Evaluation lab':
     with st.expander('Document-level results'):
         st.dataframe(pd.DataFrame(report['extraction']), hide_index=True, width='stretch')
     st.download_button('Download evaluation JSON', json.dumps(report, indent=2), 'evaluation.json', 'application/json')
-    st.markdown('**Live vision evaluation:** run `python -m resistlens.evaluation --live --output live-evaluation.json` after configuring the optional adapter. This makes API calls on synthetic images. No live accuracy is claimed until that evaluation is run.')
+    st.markdown('**Evaluate live extraction:** save a session connection in **AI connection**, then select synthetic images in **Vision benchmark**. API charges may apply. Live accuracy is reported only after an actual run.')
     st.caption(report['limitations'])
 
 else:
-    st.subheader('A small stack. A complete demonstration.')
+    st.subheader('About ResistLens')
     st.markdown('ResistLens is a workflow visibility tool: it asks whether new final microbiology evidence has a documented review associated with an active antimicrobial order. It does not infer infection, resistance, treatment appropriateness, or medication changes.')
-    st.markdown('### Three-minute demo')
+    st.markdown('### Explore the workflow')
     st.markdown('1. **Overview:** introduce the six synthetic scenarios and work queue.\n2. **Patient workspace / DEMO-101:** move the clock to hour 27, then 28. The final report arrives and the review flag appears.\n3. **Evidence & reasoning:** show both source IDs, exact quotes, and the deterministic rule.\n4. **Document a review:** enter a demo reviewer and source-linked note. The status becomes Reviewed.\n5. **DEMO-102 and DEMO-105:** contrast a documented review with an unreadable timestamp.\n6. **Document studio:** extract a bundled image offline, disclose fixture replay, and show verification.\n7. **Evaluation lab:** show regression results and distinguish them from live AI performance.')
     st.markdown('### Readiness is transparent')
     st.write('Score = required-field source coverage × minimum reported field confidence × 100. The 0.80 confidence cutoff is a demo configuration, not a validated clinical threshold. Eligibility also requires complete fields, source evidence, human verification, and matching patient/encounter IDs. Image quotes require visual human verification; source-text quotes are checked for literal presence.')
@@ -341,4 +341,4 @@ else:
                 archive.writestr(doc.event.event_id+'.txt', doc.text)
     st.download_button('Download training documents', out.getvalue(), 'resistlens-synthetic-documents.zip', 'application/zip')
 
-st.markdown('<div class="foot">RESISTLENS / Built for Yiyi & HackRice · Rule v1.0 · Every case is invented. Every flag is explainable.</div>', unsafe_allow_html=True)
+st.markdown('<div class="foot">RESISTLENS · Source-linked evidence review · Synthetic data only</div>', unsafe_allow_html=True)
