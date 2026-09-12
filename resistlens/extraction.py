@@ -97,6 +97,11 @@ antimicrobial identity, clinical significance, timezone, timestamps, or review l
 kind must be order, microbiology, or review. For each visible extracted field provide
 one verbatim quote, page 1, and confidence between 0 and 1. Event IDs and report version
 IDs must come from the source. Do not create a review from generic statements.
+Map Record ID or Event ID to event_id. Map Report version ID to report_id.
+These identify different concepts: extract each from its own labeled source, even
+when both appear. Do not copy a report-version identifier into event_id as a fallback.
+For each identifier, quote its own label and value, not another identifier's line.
+Before returning, check that each identifier agrees with its corresponding label.
 If this is not a supported single-event training document, refuse extraction.'''
         try:
             client = OpenAI(api_key=key, timeout=45, max_retries=0)

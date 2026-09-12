@@ -76,3 +76,36 @@ def test_live_failure_is_explicit_and_sanitized(monkeypatch, failure):
     with pytest.raises(ExtractionError) as error:
         OpenAIAdapter().extract(render_document(demo_cases()[0].documents[1]))
     assert 'sensitive-provider-body' not in str(error.value)
+
+@pytest.mark.parametrize('label', ['Report version ID | ', 'Report version ID: ', 'report_id: '])
+def test_report_version_quote_cannot_support_event_id(label):
+    from resistlens.models import readiness
+    doc = demo_cases()[0].documents[1].model_copy(deep=True)
+    doc.text = ''  # Live images have no independent source transcription.
+    doc.event.event_id = doc.event.report_id
+    next(e for e in doc.event.evidence if e.field == 'event_id').quote = label + doc.event.report_id
+    assert not readiness(doc)['eligible']
+    assert 'Missing source support: event_id' in readiness(doc)['problems']
+
+@pytest.mark.parametrize('label', ['Record ID | ', 'Event ID: ', 'event_id: '])
+def test_explicit_record_label_supports_event_id(label):
+    from resistlens.models import readiness
+    doc = demo_cases()[0].documents[1].model_copy(deep=True)
+    doc.text = ''
+    next(e for e in doc.event.evidence if e.field == 'event_id').quote = label + doc.event.event_id
+    assert readiness(doc)['eligible']
+
+def test_equal_identifiers_are_allowed_with_independent_source_labels():
+    from resistlens.models import readiness
+    doc = demo_cases()[0].documents[1].model_copy(deep=True)
+    doc.text = ''
+    doc.event.event_id = doc.event.report_id
+    next(e for e in doc.event.evidence if e.field == 'event_id').quote = 'Record ID | ' + doc.event.event_id
+    assert readiness(doc)['eligible']
+
+def test_identifier_value_must_match_labeled_image_quote():
+    from resistlens.models import readiness
+    doc = demo_cases()[0].documents[1].model_copy(deep=True)
+    doc.text = ''
+    next(e for e in doc.event.evidence if e.field == 'event_id').quote = 'Record ID | different-value'
+    assert not readiness(doc)['eligible']

@@ -1,4 +1,5 @@
 """Validated extraction and workflow contracts. No treatment knowledge lives here."""
+import re
 from datetime import datetime
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, AwareDatetime, model_validator
@@ -13,7 +14,7 @@ class Evidence(StrictModel):
     confidence: float = Field(ge=0, le=1)
 
 class ClinicalEvent(StrictModel):
-    event_id: str = Field(min_length=1, max_length=100)
+    event_id: str = Field(min_length=1, max_length=100, description="The source Record ID or Event ID for this event. Do not substitute the Report version ID. Quote the corresponding record/event label.")
     patient_id: str | None
     encounter_id: str | None
     kind: Literal['order', 'microbiology', 'review']
@@ -22,7 +23,7 @@ class ClinicalEvent(StrictModel):
     medication: str | None
     report_status: Literal['preliminary', 'final', 'amended', 'unknown'] | None
     result: str | None
-    report_id: str | None
+    report_id: str | None = Field(description="The microbiology Report version ID, distinct in meaning from the Record ID/event_id. Null when absent. Quote the report-version label.")
     reviewed_report_id: str | None
     reviewed_order_id: str | None
     reviewer: str | None
@@ -79,6 +80,16 @@ def readiness(doc: Document) -> dict:
     evidence = {e.field: e for e in event.evidence}
     missing = [f for f in fields if getattr(event, f) in (None, '')]
     unsupported = [f for f in fields if f not in evidence]
+    # Recognized explicit ID labels must support the field they are attached to.
+    # Do not require different ID values: independently labeled IDs may coincide.
+    id_labels = {'record id': 'event_id', 'event id': 'event_id', 'event_id': 'event_id',
+                 'report version id': 'report_id', 'report_id': 'report_id'}
+    for item in event.evidence:
+        if item.field not in ('event_id', 'report_id'):
+            continue
+        match = re.match(r'^\s*(Record ID|Event ID|event_id|Report version ID|report_id)\s*[:|]\s*(.*?)\s*$', item.quote, re.IGNORECASE)
+        if match and (id_labels[match[1].lower()] != item.field or match[2] != getattr(event, item.field)):
+            unsupported.append(item.field)
     # For text documents the quoted span must actually occur in the source.
     unsupported += [f for f in fields if f in evidence and doc.text and evidence[f].quote not in doc.text]
     # In the labeled synthetic format, also verify that a field's value agrees
