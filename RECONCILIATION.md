@@ -1,6 +1,6 @@
 # ResistLens: document-to-code reconciliation and execution plan
 
-Yiyi, this audit uses both attached AGENT_CONTEXT.md versions, the attached implementation plan, the actual local repository and authenticated GitHub inspection on 2026-09-12. Source and fresh tests take precedence over narrative claims.
+This audit uses both attached AGENT_CONTEXT.md versions, the attached implementation plan, the actual local repository and authenticated GitHub inspection on 2026-09-12. Source and fresh tests take precedence over narrative claims.
 
 ## Repository evidence at arrival
 
