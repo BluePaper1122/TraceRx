@@ -30,6 +30,7 @@ import {
   setCadRoot,
   unlockWithFace,
 } from "./lib/tee.js";
+import { api, apiBase } from "./lib/api.js";
 
 const CAD_KEY = "resistlens.web3.cad.v1";
 const DAG_KEY = "resistlens.web3.dag.v1";
@@ -191,6 +192,9 @@ export function App() {
     return rebuildDag(loaded.nodes);
   });
   const [solana, setSolana] = useState(() => loadJson(SOL_KEY, emptySolanaLocal()));
+  const [backend, setBackend] = useState({ status: "checking", detail: "" });
+  const [immunityScore, setImmunityScore] = useState(null);
+  const [backendSeed, setBackendSeed] = useState(null);
   const [cluster, setCluster] = useState(() => {
     const saved = loadJson(CLUSTER_KEY, null);
     return CLUSTERS.includes(saved) ? saved : defaultCluster();
@@ -209,6 +213,29 @@ export function App() {
   useEffect(() => saveJson(DAG_KEY, { nodes: dag.nodes }), [dag]);
   useEffect(() => saveJson(SOL_KEY, solana), [solana]);
   useEffect(() => saveJson(CLUSTER_KEY, cluster), [cluster]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const health = await api.health();
+        if (cancelled) return;
+        setBackend({
+          status: "up",
+          detail: `${health.author || "Niha"} · ${health.features?.join(", ") || "ok"} · CAD ${health.counts?.cad ?? 0}`,
+        });
+      } catch (err) {
+        if (cancelled) return;
+        setBackend({
+          status: "down",
+          detail: `Backend offline at ${apiBase()} — run: npm run server`,
+        });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const rag = useMemo(
     () => continuityPrompt(retrieveForPatient(dag, cad, "10")),
@@ -312,6 +339,95 @@ export function App() {
             Local TEE · CAD · DAG · RAG · Solana memo commitments (root + metadata only — no
             PHI).
           </p>
+        </div>
+
+        <div className="card" style={{ marginBottom: "1rem" }}>
+          <h2>Niha backend · Immunity + CAD/DAG registry</h2>
+          <p className="hint">
+            Proper local API under <code>web3/server</code> (author Niha). Face templates stay in
+            the browser TEE; the server stores CAD/DAG + Solana commitment receipts and runs the
+            Immunity (readme-3) scores as a <strong>submodule of ResistLens</strong>.
+          </p>
+          <p>
+            Status:{" "}
+            <strong style={{ color: backend.status === "up" ? "#7dffa6" : "#ffb4b4" }}>
+              {backend.status}
+            </strong>{" "}
+            <span className="mono">{backend.detail}</span>
+          </p>
+          <div className="row" style={{ gap: "0.5rem", flexWrap: "wrap" }}>
+            <button
+              disabled={busy || backend.status !== "up"}
+              onClick={() => {
+                void (async () => {
+                  setBusy(true);
+                  try {
+                    const seed = await api.seedDemo();
+                    const score = await api.scorePatient("2");
+                    setBackendSeed(seed);
+                    setImmunityScore(score);
+                    setBackend((b) => ({
+                      ...b,
+                      detail: `seeded merkle ${String(seed.merkleRoot).slice(0, 12)}… · #2 ${score.band}`,
+                    }));
+                    setSolStatus(
+                      `Backend seeded CAD/DAG. Patient #2 immunity ${score.band} (${(
+                        score.probability * 100
+                      ).toFixed(0)}%).`,
+                    );
+                  } catch (err) {
+                    setSolStatus(String(err.message || err));
+                  } finally {
+                    setBusy(false);
+                  }
+                })();
+              }}
+            >
+              Seed backend + score #2
+            </button>
+            <button
+              disabled={busy || backend.status !== "up" || !backendSeed}
+              onClick={() => {
+                void (async () => {
+                  setBusy(true);
+                  try {
+                    const commit = await api.recordCommitment({
+                      merkleRoot: backendSeed.merkleRoot,
+                      dagTip: backendSeed.tip?.id,
+                      cidCount: backendSeed.cidCount,
+                      local: true,
+                      cluster: "local",
+                    });
+                    setSolStatus(`Backend recorded local Solana memo: ${commit.commitment.memo}`);
+                  } catch (err) {
+                    setSolStatus(String(err.message || err));
+                  } finally {
+                    setBusy(false);
+                  }
+                })();
+              }}
+            >
+              Record local Solana commitment
+            </button>
+          </div>
+          {immunityScore ? (
+            <div style={{ marginTop: "0.75rem" }}>
+              <p>
+                <strong>{immunityScore.label}</strong> · {immunityScore.drug} ·{" "}
+                <span className="mono">
+                  {(immunityScore.probability * 100).toFixed(1)}% · {immunityScore.band}
+                </span>
+              </p>
+              <ul style={{ margin: "0.4rem 0 0", paddingLeft: "1.2rem", opacity: 0.85 }}>
+                {immunityScore.steps.map((s) => (
+                  <li key={s.id}>
+                    {s.title}
+                    {s.warn ? " ⚠" : ""} — {s.detail}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
 
         <div className="grid">

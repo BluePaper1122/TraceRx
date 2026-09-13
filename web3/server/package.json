@@ -1,0 +1,11 @@
+{
+  "name": "resistlens-web3-server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "test": "node --test test.js"
+  }
+}
