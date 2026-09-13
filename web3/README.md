@@ -1,12 +1,11 @@
-# ResistLens · Web3 / Immunity slice (Niha)
-
-**ResistLens** is the main product: a local-first hospital **continuity steward**. It watches documentation and handoff gaps that delay care.
+# ResistLens · Web3 (Antibiotic Resistance)
+**ResistLens** is the main product: a local first hospital **continuity steward**. It watches documentation and handoff gaps that delay care.
 
 The **Immunity module** (the “readme-3” antibiotic-resistance CDS) is **one submodule inside ResistLens** — not a separate product. It answers: *for this patient, is this antibiotic likely to fail?*
 
-This folder (`web3/`) is Niha’s **additive** Vite app for the safe local stack around that story. It does **not** replace or rewrite teammates’ Streamlit core (`app.py`, `resistlens/`, `web/`). Ship it on a **feature branch** so `main` stays compatible until the team merges deliberately.
+This folder (`web3/`) is **additive** Vite app for the safe local stack around that story. It does **not** replace or rewrite  Streamlit core (`app.py`, `resistlens/`, `web/`). Ship it on a **feature branch** so `main` stays compatible until merges deliberately.
 
-> Research / hackathon demo only. Synthetic data. Not for clinical use. No PHI on-chain.
+> Research only. Synthetic data. Not for clinical use. No PHI on-chain.
 
 ---
 
