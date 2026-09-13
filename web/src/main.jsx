@@ -566,7 +566,7 @@ function App() {
   );
 }
 function Guide({ api, state, setState, run, busy, navigate }) {
-  const [step, set] = useState(0),
+  const [step, setStep] = useState(0),
     [data, error] = useData(api, "/guide/" + step);
   const steps = [
     ["Before the result", "Context and evidence"],
@@ -594,9 +594,9 @@ function Guide({ api, state, setState, run, busy, navigate }) {
           </p>
           <button
             className="primary intro-action"
-            onClick={() => setStep(Math.min(step + 1, 3))}
+            onClick={() => step < steps.length - 1 ? setStep(step + 1) : navigate(pages[2])}
           >
-            Continue guided case <ArrowRight aria-hidden="true" />
+            {step < steps.length - 1 ? "Continue guided case" : "Open patient workspace"} <ArrowRight aria-hidden="true" />
           </button>
         </div>
         <div className="evidence-flow" aria-label="Evidence review workflow">
@@ -629,7 +629,7 @@ function Guide({ api, state, setState, run, busy, navigate }) {
           <button
             className={step === index ? "active" : ""}
             key={title}
-            onClick={() => set(index)}
+            onClick={() => setStep(index)}
             role="tab"
             aria-selected={step === index}
           >
