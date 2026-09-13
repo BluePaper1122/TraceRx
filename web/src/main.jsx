@@ -293,16 +293,21 @@ function App() {
       </aside>
       <main>
         <header className="hero">
-          <small>RESISTLENS · EVIDENCE REVIEW</small>
-          <h1>Close the evidence-to-review gap.</h1>
-          <p>
-            Bring source evidence, deterministic checks, and human review into
-            one workspace.
-          </p>
-          <div className="tags">
-            <span>Source provenance</span>
-            <span>Deterministic rules</span>
-            <span>Human verification</span>
+          <div className="hero-copy">
+            <small>HACKRICE 2026 · EVIDENCE REVIEW</small>
+            <h1>ResistLens</h1>
+            <h2>Close the evidence-to-review gap.</h2>
+            <p>Bring source evidence, <strong>deterministic checks</strong>, and human review into one traceable workspace.</p>
+            <div className="tags">
+              <span>Deterministic rules</span>
+              <span>Source provenance</span>
+              <span>Human verification</span>
+            </div>
+          </div>
+          <div className="evidence-rail" aria-label="Evidence review workflow">
+            <div className="rail-node"><small>01 · SOURCE</small><p>New evidence arrives</p></div>
+            <div className="rail-node"><small>02 · RECONCILE</small><p>Check the active order</p></div>
+            <div className="rail-node"><small>03 · REVIEW</small><p>Trace the documented review</p></div>
           </div>
         </header>
         <p className="disclaimer">
