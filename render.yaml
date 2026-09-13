@@ -7,3 +7,23 @@ services:
     dockerContext: .
     healthCheckPath: /api/health
     autoDeployTrigger: commit
+    envVars:
+      # Explanation layer: set ANY ONE of these four. AI_PROVIDER / AI_MODEL
+      # are optional overrides when more than one key is present.
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: AI_PROVIDER
+        sync: false
+      - key: AI_MODEL
+        sync: false
+      # Optional durability. Absent → the app runs fully in-memory.
+      # Use Supabase's TRANSACTION POOLER string (IPv4); the direct
+      # db.<ref>.supabase.co host is IPv6-only and unreachable from Render.
+      - key: DATABASE_URL
+        sync: false

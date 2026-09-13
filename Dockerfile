@@ -13,6 +13,7 @@ WORKDIR /app
 COPY requirements.txt requirements-api.txt ./
 RUN pip install --no-cache-dir -r requirements-api.txt
 COPY resistlens/ ./resistlens/
+COPY ml/ ./ml/
 COPY benchmark_data/ ./benchmark_data/
 COPY --from=frontend /build/dist ./web/dist
 
