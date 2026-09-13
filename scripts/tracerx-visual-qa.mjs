@@ -15,7 +15,7 @@ try {
   });
   await desktop.screenshot({ path: path.join(output, "reference-tool.png"), fullPage: true });
 
-  await desktop.goto("https://tracerx.onrender.com/", {
+  await desktop.goto(process.env.TRACERX_URL || "https://resistlens.onrender.com/", {
     waitUntil: "networkidle",
     timeout: 90000,
   });

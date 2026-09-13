@@ -1,3 +1,5 @@
+> Historical checkpoint: filesystem paths and commit references below describe earlier work. See BRAND_MIGRATION.md for the current rename, repository, and deployment status.
+
 # Current execution checkpoint — 2026-09-12
 
 **Note** This is a reference page for building the tracerx. This will probably get archived later on. Don't put anything important or change something significantly here!
@@ -32,7 +34,7 @@ Read this checkpoint first, then the detailed sections below. The pre-existing c
 Project root:
 
 ```text
-/Users/ysun26/Documents/Codex/2026-09-11/referenced-chatgpt-conversation-this-is-an/outputs/tracerx
+/Users/ysun26/Documents/Codex/2026-09-11/referenced-chatgpt-conversation-this-is-an/outputs/resistlens
 ```
 
 Parent task workspace:
@@ -41,21 +43,21 @@ Parent task workspace:
 /Users/ysun26/Documents/Codex/2026-09-11/referenced-chatgpt-conversation-this-is-an
 ```
 
-- `outputs/tracerx` is its own Git repository, on `main`.
+- `outputs/resistlens` is its own Git repository, on `main`.
 - Remote: https://github.com/BluePaper1122/tracerx.git
 - Last locally observed commit: `d475ee1` — Add guided first-use walkthrough and Mac launcher. It was successfully pushed in an earlier turn.
 - Earlier commits: `f8fdd70` — Preserve independent findings and require fresh source verification; `03ac3b5` — Initial TraceRx project.
 - The live-VLM/benchmark additions are **not committed at this checkpoint**. Modified tracked files: `app.py`, `requirements.txt`, `tracerx/extraction.py`. Untracked feature files/directories: `.github/`, `.python-version`, `benchmark_data/`, `tracerx/benchmark.py`, `tracerx/live_ui.py`. This context file is also untracked. Inspect Git again before acting because the user or another agent may make changes.
 - `.DS_Store` and `tracerx/.DS_Store` are also untracked. Do not blindly stage them; exclude these Finder metadata files when packaging or committing.
 - Both the project `.venv/` and task `work/venv/` exist. The tests below used the latter. No need to reinstall dependencies merely to reproduce that run.
-- The sibling `outputs/tracerx.zip` is an older delivery archive. It was last refreshed before the live-VLM additions; regenerate it only after completing and checking the new features. `synthetic-documents.zip` inside the repository is the original 15-document fixture pack, not the new 48-image benchmark.
+- The sibling `outputs/resistlens.zip` is an older delivery archive. It was last refreshed before the live-VLM additions; regenerate it only after completing and checking the new features. `synthetic-documents.zip` inside the repository is the original 15-document fixture pack, not the new 48-image benchmark.
 
 ### Verified now versus pending
 
 Fresh verification during this documentation request:
 
 ```text
-Working directory: outputs/tracerx
+Working directory: outputs/resistlens
 Command: ../../work/venv/bin/python -m pytest -q
 Result: 61 passed in 4.12s
 ```
