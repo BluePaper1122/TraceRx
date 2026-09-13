@@ -1,9 +1,9 @@
-# ResistLens · Web3 (Antibiotic Resistance)
-**ResistLens** is the main product: a local first hospital **continuity steward**. It watches documentation and handoff gaps that delay care.
+# TraceRx · Web3 (Antibiotic Resistance)
+**TraceRx** is the main product: a local first hospital **continuity steward**. It watches documentation and handoff gaps that delay care.
 
-The **Immunity module** (the “readme-3” antibiotic-resistance CDS) is **one submodule inside ResistLens** — not a separate product. It answers: *for this patient, is this antibiotic likely to fail?*
+The **Immunity module** (the “readme-3” antibiotic-resistance CDS) is **one submodule inside TraceRx** — not a separate product. It answers: *for this patient, is this antibiotic likely to fail?*
 
-This folder (`web3/`) is **additive** Vite app for the safe local stack around that story. It does **not** replace or rewrite  Streamlit core (`app.py`, `resistlens/`, `web/`). Ship it on a **feature branch** so `main` stays compatible until merges deliberately.
+This folder (`web3/`) is **additive** Vite app for the safe local stack around that story. It does **not** replace or rewrite  Streamlit core (`app.py`, `tracerx/`, `web/`). Ship it on a **feature branch** so `main` stays compatible until merges deliberately.
 
 > Research only. Synthetic data. Not for clinical use. No PHI on-chain.
 
@@ -13,12 +13,12 @@ This folder (`web3/`) is **additive** Vite app for the safe local stack around t
 
 | Layer | Role |
 | --- | --- |
-| **ResistLens (core)** | Continuity steward — admin delays, missing files, transfer packets, documentation gaps → harm |
-| **Immunity module** | Sub-part of ResistLens — personal resistance scoring on a synthetic roster |
+| **TraceRx (core)** | Continuity steward — admin delays, missing files, transfer packets, documentation gaps → harm |
+| **Immunity module** | Sub-part of TraceRx — personal resistance scoring on a synthetic roster |
 | **This `web3/` package** | Local TEE + face gate + CAD + DAG + RAG + Solana memo commitments for continuity/immunity events |
 
 ```text
-ResistLens (main)
+TraceRx (main)
 ├── Continuity stewardship (team Streamlit / web — untouched here)
 └── Immunity module (readme-3 CDS chain)
         └── web3/ safe runtime (this package)
@@ -27,9 +27,9 @@ ResistLens (main)
 
 ---
 
-## Immunity module (readme-3, inside ResistLens)
+## Immunity module (readme-3, inside TraceRx)
 
-Same clinical framing as the original immunity spec — now explicitly nested under ResistLens:
+Same clinical framing as the original immunity spec — now explicitly nested under TraceRx:
 
 1. **Unit antibiogram baseline** — population prior, not a personal answer  
 2. **Colonization with decay** — organism on *this* body; never-tested ≠ negative  
@@ -138,4 +138,4 @@ python -m streamlit run app.py
 
 ## Author
 
-Niha — additive `web3/` frontend + backend (ResistLens core · Immunity submodule · local TEE/CAD/DAG/Solana).
+Niha — additive `web3/` frontend + backend (TraceRx core · Immunity submodule · local TEE/CAD/DAG/Solana).

@@ -120,7 +120,7 @@ const server = createServer(async (req, res) => {
       ensureDag(store);
       send(res, 200, {
         ok: true,
-        service: "resistlens-web3-backend",
+        service: "tracerx-web3-backend",
         author: "Niha",
         features: ["tee-session", "cad", "dag", "rag", "immunity", "solana-commit-registry"],
         counts: {
@@ -354,6 +354,6 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`ResistLens web3 backend (Niha) http://${HOST}:${PORT}`);
+  console.log(`TraceRx web3 backend (Niha) http://${HOST}:${PORT}`);
   console.log(`Health: http://${HOST}:${PORT}/api/health`);
 });

@@ -17,7 +17,7 @@ export function formatCadMemoMessage({ cadRoot, dagTip, cidCount }) {
 export function parseCadMemoMessage(message) {
   const parts = String(message).split("|");
   if (parts.length !== 4 || parts[0] !== MEMO_PREFIX) {
-    throw new Error("invalid ResistLens CAD memo");
+    throw new Error("invalid TraceRx CAD memo");
   }
   const [, cadRoot, dagTip, countRaw] = parts;
   if (!/^[0-9a-f]{64}$/i.test(cadRoot)) throw new Error("invalid cadRoot in memo");

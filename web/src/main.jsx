@@ -1,3 +1,4 @@
+import "./brand-storage.js";
 import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -308,7 +309,7 @@ function App() {
   useEffect(() => {
     let active = true;
     async function start() {
-      let sessionToken = sessionStorage.getItem("resistlens-session");
+      let sessionToken = sessionStorage.getItem("tracerx-session");
       if (sessionToken) {
         try {
           const existing = await api(
@@ -324,14 +325,14 @@ function App() {
           }
           return;
         } catch {
-          sessionStorage.removeItem("resistlens-session");
+          sessionStorage.removeItem("tracerx-session");
         }
       }
       const created = await api("/session", {});
       sessionToken = created.token;
       const fresh = await api("/state", undefined, "GET", false, sessionToken);
       if (active) {
-        sessionStorage.setItem("resistlens-session", sessionToken);
+        sessionStorage.setItem("tracerx-session", sessionToken);
         T(sessionToken);
         S(fresh);
       }
@@ -467,7 +468,7 @@ function App() {
               onClick={() =>
                 run(async () => {
                   await api("/session", undefined, "DELETE");
-                  sessionStorage.removeItem("resistlens-session");
+                  sessionStorage.removeItem("tracerx-session");
                   location.reload();
                 })
               }

@@ -1,3 +1,4 @@
+import "./brand-storage.js";
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { appendDagNode, emptyDag } from "./lib/dag.js";
 import { continuityPrompt, retrieveForPatient } from "./lib/rag.js";
@@ -32,10 +33,10 @@ import {
 } from "./lib/tee.js";
 import { api, apiBase } from "./lib/api.js";
 
-const CAD_KEY = "resistlens.web3.cad.v1";
-const DAG_KEY = "resistlens.web3.dag.v1";
-const SOL_KEY = "resistlens.web3.sol.v1";
-const CLUSTER_KEY = "resistlens.web3.cluster.v1";
+const CAD_KEY = "tracerx.web3.cad.v1";
+const DAG_KEY = "tracerx.web3.dag.v1";
+const SOL_KEY = "tracerx.web3.sol.v1";
+const CLUSTER_KEY = "tracerx.web3.cluster.v1";
 
 function loadJson(key, fallback) {
   try {
@@ -98,7 +99,7 @@ function DoctorGate({ vault, setVault, children }) {
     <div className="gate">
       <div className="gate-box">
         <p className="badge" style={{ color: "#9fd8d1" }}>
-          ResistLens Web3 · local TEE
+          TraceRx Web3 · local TEE
         </p>
         <h1>Doctor persona unlock</h1>
         <p style={{ opacity: 0.8 }}>
@@ -334,7 +335,7 @@ export function App() {
       <div className="app">
         <div className="hero">
           <p className="badge">Additive Web3 module · Streamlit core untouched</p>
-          <h1>ResistLens Web3</h1>
+          <h1>TraceRx Web3</h1>
           <p>
             Local TEE · CAD · DAG · RAG · Solana memo commitments (root + metadata only — no
             PHI).
@@ -346,7 +347,7 @@ export function App() {
           <p className="hint">
             Proper local API under <code>web3/server</code> (author Niha). Face templates stay in
             the browser TEE; the server stores CAD/DAG + Solana commitment receipts and runs the
-            Immunity (readme-3) scores as a <strong>submodule of ResistLens</strong>.
+            Immunity (readme-3) scores as a <strong>submodule of TraceRx</strong>.
           </p>
           <p>
             Status:{" "}

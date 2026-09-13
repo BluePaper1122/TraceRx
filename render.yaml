@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: resistlens-react
+    name: tracerx-react
     runtime: docker
     plan: free
     dockerfilePath: ./Dockerfile

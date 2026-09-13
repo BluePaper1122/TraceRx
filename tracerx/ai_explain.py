@@ -52,7 +52,7 @@ PROVIDERS = {
 CORPUS = [
     {
         "id": "methodology-pipeline",
-        "title": "ResistLens scoring methodology — evidence pipeline",
+        "title": "TraceRx scoring methodology — evidence pipeline",
         "source_label": "Project scoring methodology (illustrative)",
         "content": (
             "The illustrative score starts from a matching local antibiogram baseline for the "
@@ -68,7 +68,7 @@ CORPUS = [
     },
     {
         "id": "methodology-decay",
-        "title": "ResistLens scoring methodology — decay and persistence",
+        "title": "TraceRx scoring methodology — decay and persistence",
         "source_label": "Project scoring methodology (illustrative)",
         "content": (
             "Evidence categories decay differently. Routine organisms: full weight up to 6 months, "
@@ -81,7 +81,7 @@ CORPUS = [
     },
     {
         "id": "methodology-missing-data",
-        "title": "ResistLens scoring methodology — missing and incomplete data",
+        "title": "TraceRx scoring methodology — missing and incomplete data",
         "source_label": "Project scoring methodology (illustrative)",
         "content": (
             "Test status is tracked as documented, not_ordered, or unknown — these are never treated "
@@ -96,7 +96,7 @@ CORPUS = [
     },
     {
         "id": "ledger-provenance",
-        "title": "ResistLens transfer record verification",
+        "title": "TraceRx transfer record verification",
         "source_label": "Project safety rules",
         "content": (
             "When a resistance-relevant record is retrieved from a fictional partner institution, it "
@@ -108,7 +108,7 @@ CORPUS = [
     },
     {
         "id": "safety-ai-boundary",
-        "title": "ResistLens safety rules — AI assistant boundary",
+        "title": "TraceRx safety rules — AI assistant boundary",
         "source_label": "Project safety rules",
         "content": (
             "The Clinical Evidence Assistant explains an already-computed illustrative score. It does "
@@ -146,7 +146,7 @@ def retrieve(query, limit=4):
     return [chunk for _, chunk in scored[:limit]]
 
 
-SYSTEM_PROMPT = """You are the Clinical Evidence Assistant inside ResistLens, a synthetic-data
+SYSTEM_PROMPT = """You are the Clinical Evidence Assistant inside TraceRx, a synthetic-data
 research prototype for antimicrobial resistance-risk intelligence.
 
 You explain a "prediction" that has ALREADY been computed by a separate deterministic engine.

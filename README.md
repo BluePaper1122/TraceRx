@@ -6,7 +6,7 @@
 
 ## Start on a Mac without typing commands
 
-Double-click `Launch ResistLens.command` in this folder. It opens TraceRx in your default browser; keep its Terminal window open. It reuses an available project environment, or installs dependencies on first use. Start with **Start here** and follow the four guided steps. This isolated walkthrough does not modify your patient workspace.
+Double-click `Launch TraceRx.command` in this folder. It opens TraceRx in your default browser; keep its Terminal window open. It reuses an available project environment, or installs dependencies on first use. Start with **Start here** and follow the four guided steps. This isolated walkthrough does not modify your patient workspace.
 
 ## Run in four commands
 
@@ -55,7 +55,7 @@ Synthetic PNG/JPEG or labeled text
   Session audit + JSON/CSV export + evaluation
 ```
 
-`app.py` contains presentation and session interactions. `resistlens/models.py` defines contracts and readiness. `engine.py` contains the independent deterministic rule. `fixtures.py` generates training records and images. `extraction.py` owns all extraction boundaries. `evaluation.py` provides the CLI and dashboard metrics. `integrations.py` defines optional protocols only. `tests/` covers rules, extraction and UI.
+`app.py` contains presentation and session interactions. `tracerx/models.py` defines contracts and readiness. `engine.py` contains the independent deterministic rule. `fixtures.py` generates training records and images. `extraction.py` owns all extraction boundaries. `evaluation.py` provides the CLI and dashboard metrics. `integrations.py` defines optional protocols only. `tests/` covers rules, extraction and UI.
 
 ## Exact workflow semantics (rule v1.0)
 
@@ -94,13 +94,13 @@ A real network call was not made during delivery; the adapter contract is tested
 ```bash
 python -m pip install -r requirements-dev.txt
 python -m pytest -q
-python -m resistlens.evaluation --output evaluation.json
+python -m tracerx.evaluation --output evaluation.json
 ```
 
 Optional paid vision evaluation on the synthetic PNGs:
 
 ```bash
-python -m resistlens.evaluation --live --output live-evaluation.json
+python -m tracerx.evaluation --live --output live-evaluation.json
 ```
 
 The default evaluation compares local parser results with authored structured labels and compares six scenario states with explicit expectations. It reports field-level exact accuracy, document exact match and rule accuracy. It is a small regression corpus, not an independent held-out benchmark or clinical validation. Tests separately exercise timing boundaries, exact linkage, mismatches, multiple orders, unverified data, schema rejection and UI interactions. The live adapter test skips if the optional SDK is absent. CLI exits nonzero on any regression mismatch.

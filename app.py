@@ -9,15 +9,15 @@ from io import BytesIO
 from zipfile import ZipFile
 import pandas as pd
 import streamlit as st
-from resistlens.models import ClinicalEvent, readiness
-from resistlens.fixtures import demo_cases, DEMO_NOW, render_document, make_document
-from resistlens.engine import evaluate, case_state, RULE_VERSION
-from resistlens.extraction import DemoAdapter, TextAdapter, OpenAIAdapter, ExtractionError
-from resistlens.evaluation import run_evaluation
-from resistlens.integrations import integration_status
-from resistlens.live_ui import connection_page, benchmark_page, live_adapter
+from tracerx.models import ClinicalEvent, readiness
+from tracerx.fixtures import demo_cases, DEMO_NOW, render_document, make_document
+from tracerx.engine import evaluate, case_state, RULE_VERSION
+from tracerx.extraction import DemoAdapter, TextAdapter, OpenAIAdapter, ExtractionError
+from tracerx.evaluation import run_evaluation
+from tracerx.integrations import integration_status
+from tracerx.live_ui import connection_page, benchmark_page, live_adapter
 
-st.set_page_config(page_title='ResistLens · Evidence to action', page_icon='◉', layout='wide')
+st.set_page_config(page_title='TraceRx · Evidence to action', page_icon='◉', layout='wide')
 st.markdown('''<style>
 .block-container{padding-top:2.1rem;max-width:1440px}h1{letter-spacing:-1.7px!important;font-weight:750!important}
 h2,h3{letter-spacing:-.5px}.eyebrow{color:#087f8c;font-size:12px;font-weight:750;letter-spacing:2.2px}
@@ -41,7 +41,7 @@ def audit(action, detail, **changes):
                                  'action': action, 'detail': detail, **changes})
 
 with st.sidebar:
-    st.markdown('## ◉ ResistLens')
+    st.markdown('## ◉ TraceRx')
     st.caption('ANTIMICROBIAL STEWARDSHIP')
     page = st.radio('Navigate', ['Start here', 'Overview', 'Patient workspace', 'Document studio', 'Evaluation lab', 'AI connection', 'Vision benchmark', 'About & demo'], label_visibility='collapsed')
     st.divider()
@@ -60,7 +60,7 @@ with st.sidebar:
         st.rerun()
     st.caption('Session memory only. Export before closing or resetting.')
 
-st.markdown('''<div class="hero"><div class="eyebrow">RESISTLENS · EVIDENCE REVIEW</div>
+st.markdown('''<div class="hero"><div class="eyebrow">TRACERX · EVIDENCE REVIEW</div>
 <h1>Close the evidence-to-review gap.</h1><p>New microbiology evidence. An active antimicrobial order. A clear, traceable answer to whether review was documented.</p>
 <span class="tag">Source-linked evidence</span><span class="tag">Deterministic workflow rules</span><span class="tag">Human verification</span></div>''', unsafe_allow_html=True)
 st.caption('Research demonstration only • Synthetic data • Does not diagnose, prescribe, or recommend medication changes. “No trigger” does not establish clinical safety.')
@@ -136,7 +136,7 @@ elif page == 'Overview':
                          'Readiness / 100': round(sum(readiness(d)['score'] for d in case.documents)/len(case.documents))})
         frame = pd.DataFrame(rows)
         st.dataframe(frame, hide_index=True, width='stretch')
-        st.download_button('Export queue CSV', frame.to_csv(index=False), 'resistlens-queue.csv', 'text/csv')
+        st.download_button('Export queue CSV', frame.to_csv(index=False), 'tracerx-queue.csv', 'text/csv')
     with right:
         st.markdown('### How it works')
         st.markdown('**01 · Capture**\n\nRead a synthetic document or replay a bundled image.\n\n**02 · Verify**\n\nInspect extracted fields beside source evidence.\n\n**03 · Reconcile**\n\nMatch final evidence to active orders and linked reviews.')
@@ -145,13 +145,13 @@ elif page == 'Overview':
         st.dataframe(pd.DataFrame([{k: row[k] for k in ('recorded_at_utc', 'action', 'detail')} for row in st.session_state.audit]), width='stretch', hide_index=True)
         bundle = {'as_of': as_of.isoformat(), 'rule_version': RULE_VERSION,
                   'cases': [c.model_dump(mode='json') for c in cases], 'audit': st.session_state.audit}
-        st.download_button('Export complete session JSON', json.dumps(bundle, indent=2), 'resistlens-session.json', 'application/json')
+        st.download_button('Export complete session JSON', json.dumps(bundle, indent=2), 'tracerx-session.json', 'application/json')
         source_bundle = BytesIO()
         with ZipFile(source_bundle, 'w') as archive:
             archive.writestr('session.json', json.dumps(bundle, indent=2))
             for digest, image_bytes in st.session_state.source_images.items():
                 archive.writestr('sources/'+digest+('.png' if image_bytes.startswith(b'\x89PNG') else '.jpg'), image_bytes)
-        st.download_button('Export session with source images', source_bundle.getvalue(), 'resistlens-evidence.zip', 'application/zip')
+        st.download_button('Export session with source images', source_bundle.getvalue(), 'tracerx-evidence.zip', 'application/zip')
 
 elif page == 'Patient workspace':
     selected = st.selectbox('Synthetic patient', [c.patient_id for c in cases], format_func=lambda pid: next(f'{c.patient_id} · {c.label}' for c in cases if c.patient_id == pid))
@@ -167,7 +167,7 @@ elif page == 'Patient workspace':
         {'Needs review': st.warning, 'Needs verification': st.error, 'Reviewed': st.success, 'No trigger': st.info}[f.state](message)
     timeline, evidence_tab, review_tab, risk_tab = st.tabs(['Event timeline', 'Evidence & reasoning', 'Document a review', 'Synthetic risk scorecard'])
     with risk_tab:
-        from resistlens.risk_ui import scorecard
+        from tracerx.risk_ui import scorecard
         scorecard(selected, as_of)
     with timeline:
         for d in sorted(case.documents, key=lambda d: d.event.occurred_at or datetime.max.replace(tzinfo=timezone.utc)):
@@ -291,7 +291,7 @@ elif page == 'Document studio':
                 if target is None and any(c.patient_id == event.patient_id for c in cases):
                     raise ValueError('This patient already has a different encounter in the workspace. Use a distinct synthetic patient ID or a new session; encounters are never merged.')
                 if target is None:
-                    from resistlens.models import Case
+                    from tracerx.models import Case
                     target = Case(patient_id=event.patient_id, encounter_id=event.encounter_id, label='Imported synthetic case', unit='Imported', story='Source-verified synthetic documents imported through Document studio.', documents=[])
                     cases.append(target)
                 previous = [d for d in target.documents if d.event.event_id == event.event_id]
@@ -323,8 +323,8 @@ elif page == 'Evaluation lab':
     st.caption(report['limitations'])
 
 else:
-    st.subheader('About ResistLens')
-    st.markdown('ResistLens is a workflow visibility tool: it asks whether new final microbiology evidence has a documented review associated with an active antimicrobial order. It does not infer infection, resistance, treatment appropriateness, or medication changes.')
+    st.subheader('About TraceRx')
+    st.markdown('TraceRx is a workflow visibility tool: it asks whether new final microbiology evidence has a documented review associated with an active antimicrobial order. It does not infer infection, resistance, treatment appropriateness, or medication changes.')
     st.markdown('### Explore the workflow')
     st.markdown('1. **Overview:** introduce the six synthetic scenarios and work queue.\n2. **Patient workspace / DEMO-101:** move the clock to hour 27, then 28. The final report arrives and the review flag appears.\n3. **Evidence & reasoning:** show both source IDs, exact quotes, and the deterministic rule.\n4. **Document a review:** enter a demo reviewer and source-linked note. The status becomes Reviewed.\n5. **DEMO-102 and DEMO-105:** contrast a documented review with an unreadable timestamp.\n6. **Document studio:** extract a bundled image offline, disclose fixture replay, and show verification.\n7. **Evaluation lab:** show regression results and distinguish them from live AI performance.')
     st.markdown('### Readiness is transparent')
@@ -339,6 +339,6 @@ else:
             for doc in case.documents:
                 archive.writestr(doc.event.event_id+'.png', render_document(doc))
                 archive.writestr(doc.event.event_id+'.txt', doc.text)
-    st.download_button('Download training documents', out.getvalue(), 'resistlens-synthetic-documents.zip', 'application/zip')
+    st.download_button('Download training documents', out.getvalue(), 'tracerx-synthetic-documents.zip', 'application/zip')
 
-st.markdown('<div class="foot">RESISTLENS · Source-linked evidence review · Synthetic data only</div>', unsafe_allow_html=True)
+st.markdown('<div class="foot">TRACERX · Source-linked evidence review · Synthetic data only</div>', unsafe_allow_html=True)

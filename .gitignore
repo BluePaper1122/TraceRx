@@ -39,3 +39,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Python and generated artifacts
+.venv/
+__pycache__/
+.pytest_cache/
+.streamlit/secrets.toml
+web/node_modules/
+web/dist/
+web3/node_modules/
+web3/server/node_modules/
+
+/web/node_modules

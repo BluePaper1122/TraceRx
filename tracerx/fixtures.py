@@ -12,7 +12,7 @@ def make_document(patient, encounter, kind, eid, at, **kwargs):
                   order_end=None, medication=None, report_status=None, result=None, report_id=None,
                   reviewed_report_id=None, reviewed_order_id=None, reviewer=None, review_note=None)
     values.update(kwargs)
-    lines = ['RESISTLENS | SYNTHETIC TRAINING DOCUMENT', 'Not a real clinical record', '']
+    lines = ['TRACERX | SYNTHETIC TRAINING DOCUMENT', 'Not a real clinical record', '']
     evidence = []
     for key, value in values.items():
         if value is not None:
@@ -66,7 +66,7 @@ def render_document(doc):
     draw.rectangle((0, 0, 1200, 100), fill='#123d44')
     font = ImageFont.load_default(size=21)
     titlefont = ImageFont.load_default(size=32)
-    draw.text((45, 30), 'RESISTLENS / TRAINING RECORD', font=titlefont, fill='white')
+    draw.text((45, 30), 'TRACERX / TRAINING RECORD', font=titlefont, fill='white')
     y = 135
     for line in doc.text.splitlines()[2:]:
         for part in textwrap.wrap(line, width=85) or ['']:

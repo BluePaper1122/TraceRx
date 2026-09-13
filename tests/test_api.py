@@ -4,8 +4,8 @@ import json
 from zipfile import ZipFile
 import pytest
 from fastapi.testclient import TestClient
-from resistlens.api import app, SESSIONS
-from resistlens.fixtures import demo_cases
+from tracerx.api import app, SESSIONS
+from tracerx.fixtures import demo_cases
 
 @pytest.fixture
 def client():
@@ -25,7 +25,7 @@ def test_session_isolation_and_auth(client):
     assert client.get('/api/state').status_code==401
 
 def test_key_never_returned_or_exported(client,monkeypatch):
-    from resistlens import api
+    from tracerx import api
     monkeypatch.setattr(api.OpenAIAdapter,'verify_connection',lambda self:'fake-model')
     secret='fake-test-key-not-real'
     assert client.post('/api/connection',json={'api_key':secret,'model':'fake-model'}).status_code==200
@@ -39,7 +39,7 @@ def test_key_never_returned_or_exported(client,monkeypatch):
     assert not client.get('/api/state').json()['connection']['configured']
 
 def test_connection_is_not_saved_when_verification_fails(client,monkeypatch):
-    from resistlens import api
+    from tracerx import api
     monkeypatch.setattr(api.OpenAIAdapter,'verify_connection',lambda self:'fake-model')
     assert client.post('/api/connection',json={
         'api_key':'older-fake-secret','model':'gpt-4.1-mini'}).status_code==200
@@ -95,7 +95,7 @@ def test_mock_ledger_and_exports(client):
         assert r.status_code==200 and ZipFile(io.BytesIO(r.content)).testzip() is None
 
 def test_incremental_benchmark(client,monkeypatch):
-    from resistlens import api
+    from tracerx import api
     class Fake:
         model='fake-model'
     monkeypatch.setattr(api,'adapter',lambda s:Fake())

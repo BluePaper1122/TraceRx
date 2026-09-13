@@ -1,6 +1,6 @@
 # Current execution checkpoint — 2026-09-12
 
-**Note** This is a reference page for building the resistlens. This will probably get archived later on. Don't put anything important or change something significantly here!
+**Note** This is a reference page for building the tracerx. This will probably get archived later on. Don't put anything important or change something significantly here!
 
 This checkpoint supersedes implementation-status claims in the historical handoff below. Read RECONCILIATION.md and VALIDATION.md for the audited current state.
 
@@ -13,7 +13,7 @@ This checkpoint supersedes implementation-status claims in the historical handof
 
 ---
 
-# ResistLens — agent context
+# TraceRx — agent context
 
 ## Current handoff checkpoint — 2026-09-12
 
@@ -22,17 +22,17 @@ Read this checkpoint first, then the detailed sections below. The pre-existing c
 ### User, goals, and communication
 
 - Address the user as **Yiyi**. She has VLM/healthcare domain experience but needs clear, concrete computer instructions. Explain which application, page, button, or folder to open; do not assume that opening app.py on GitHub runs the app.
-- The team is building ResistLens for HackRice and wants a substantial, polished Python-first project with a dependable offline fallback. The user explicitly wants to advance beyond the simulated walkthrough to real VLM extraction and evaluation, and wants free remote hosting so the app does not depend on her computer.
+- The team is building TraceRx for HackRice and wants a substantial, polished Python-first project with a dependable offline fallback. The user explicitly wants to advance beyond the simulated walkthrough to real VLM extraction and evaluation, and wants free remote hosting so the app does not depend on her computer.
 - The latest request is to save detailed project knowledge for another agent. The preceding unfinished request was to implement the live-VLM milestone, generate blurred/varied test data, and publish the app. Preserve that outstanding objective when the user resumes implementation.
 - Yiyi confirmed she **has an OpenAI API key**. No key was supplied to the agent. Never ask her to paste it into chat or record credentials in this document.
-- Yiyi explicitly approved creating and pushing source to the private GitHub repository **BluePaper1122/resistlens**. That repository was created successfully. Her latest hosting request authorizes working toward a publicly reachable app, but the source repository remains private; changing repository visibility is not necessary or already done.
+- Yiyi explicitly approved creating and pushing source to the private GitHub repository **BluePaper1122/tracerx**. That repository was created successfully. Her latest hosting request authorizes working toward a publicly reachable app, but the source repository remains private; changing repository visibility is not necessary or already done.
 
 ### Exact directories and repository state
 
 Project root:
 
 ```text
-/Users/ysun26/Documents/Codex/2026-09-11/referenced-chatgpt-conversation-this-is-an/outputs/resistlens
+/Users/ysun26/Documents/Codex/2026-09-11/referenced-chatgpt-conversation-this-is-an/outputs/tracerx
 ```
 
 Parent task workspace:
@@ -41,21 +41,21 @@ Parent task workspace:
 /Users/ysun26/Documents/Codex/2026-09-11/referenced-chatgpt-conversation-this-is-an
 ```
 
-- `outputs/resistlens` is its own Git repository, on `main`.
-- Remote: https://github.com/BluePaper1122/resistlens.git
+- `outputs/tracerx` is its own Git repository, on `main`.
+- Remote: https://github.com/BluePaper1122/tracerx.git
 - Last locally observed commit: `d475ee1` — Add guided first-use walkthrough and Mac launcher. It was successfully pushed in an earlier turn.
-- Earlier commits: `f8fdd70` — Preserve independent findings and require fresh source verification; `03ac3b5` — Initial ResistLens project.
-- The live-VLM/benchmark additions are **not committed at this checkpoint**. Modified tracked files: `app.py`, `requirements.txt`, `resistlens/extraction.py`. Untracked feature files/directories: `.github/`, `.python-version`, `benchmark_data/`, `resistlens/benchmark.py`, `resistlens/live_ui.py`. This context file is also untracked. Inspect Git again before acting because the user or another agent may make changes.
-- `.DS_Store` and `resistlens/.DS_Store` are also untracked. Do not blindly stage them; exclude these Finder metadata files when packaging or committing.
+- Earlier commits: `f8fdd70` — Preserve independent findings and require fresh source verification; `03ac3b5` — Initial TraceRx project.
+- The live-VLM/benchmark additions are **not committed at this checkpoint**. Modified tracked files: `app.py`, `requirements.txt`, `tracerx/extraction.py`. Untracked feature files/directories: `.github/`, `.python-version`, `benchmark_data/`, `tracerx/benchmark.py`, `tracerx/live_ui.py`. This context file is also untracked. Inspect Git again before acting because the user or another agent may make changes.
+- `.DS_Store` and `tracerx/.DS_Store` are also untracked. Do not blindly stage them; exclude these Finder metadata files when packaging or committing.
 - Both the project `.venv/` and task `work/venv/` exist. The tests below used the latter. No need to reinstall dependencies merely to reproduce that run.
-- The sibling `outputs/resistlens.zip` is an older delivery archive. It was last refreshed before the live-VLM additions; regenerate it only after completing and checking the new features. `synthetic-documents.zip` inside the repository is the original 15-document fixture pack, not the new 48-image benchmark.
+- The sibling `outputs/tracerx.zip` is an older delivery archive. It was last refreshed before the live-VLM additions; regenerate it only after completing and checking the new features. `synthetic-documents.zip` inside the repository is the original 15-document fixture pack, not the new 48-image benchmark.
 
 ### Verified now versus pending
 
 Fresh verification during this documentation request:
 
 ```text
-Working directory: outputs/resistlens
+Working directory: outputs/tracerx
 Command: ../../work/venv/bin/python -m pytest -q
 Result: 61 passed in 4.12s
 ```
@@ -68,10 +68,10 @@ Verified earlier: private GitHub publication, local app health response, the ori
 
 ### New local work that must be preserved
 
-1. **`resistlens/benchmark.py`:** generates 48 PNGs from 12 fictional source records with three layout families. Each source has clean, Gaussian-blurred, low-resolution, and rotated/low-contrast variants. Source IDs B01–B06 are development; B07–B12 are test. All variants of one source stay in its split. This avoids variant leakage but is not independently curated data. Labels cover 14 event fields. A timestamp-absent source tests null handling.
+1. **`tracerx/benchmark.py`:** generates 48 PNGs from 12 fictional source records with three layout families. Each source has clean, Gaussian-blurred, low-resolution, and rotated/low-contrast variants. Source IDs B01–B06 are development; B07–B12 are test. All variants of one source stay in its split. This avoids variant leakage but is not independently curated data. Labels cover 14 event fields. A timestamp-absent source tests null handling.
 2. **`benchmark_data/`:** generation completed successfully. Contains `images/`, `manifest.json` with labels/splits/hashes, and `DATASET_CARD.md` describing provenance, transforms and limitations. No real patient records or external datasets were used. These files are evaluation data, not a model-training claim.
 3. **Live benchmark runner:** actual calls through OpenAIAdapter, per-field comparisons, exact-document match, incorrectly populated nulls, failures, timings, and condition breakdowns. Failed calls count as incorrect fields. Labels are not passed to the adapter. The CLI defaults to three development images; the UI defaults to one selected image. No real-run result has been produced by this agent.
-4. **`resistlens/live_ui.py`:** AI connection page with a password field, model ID, session-only save/forget actions; Vision benchmark page with previews, labels, download ZIP, explicit billable-call confirmation, run button and result export. Credentials are intentionally excluded from project/session export artifacts. They are still held on the Streamlit server in session memory, so use a trusted local/HTTPS deployment.
+4. **`tracerx/live_ui.py`:** AI connection page with a password field, model ID, session-only save/forget actions; Vision benchmark page with previews, labels, download ZIP, explicit billable-call confirmation, run button and result export. Credentials are intentionally excluded from project/session export artifacts. They are still held on the Streamlit server in session memory, so use a trusted local/HTTPS deployment.
 5. **`OpenAIAdapter`:** now accepts explicit `api_key` and `model` constructor arguments, with environment fallback for CLI callers. Timeout is 45 seconds and SDK retries are zero. The public UI requires a session credential rather than automatically spending a server-wide key. No model ID is hard-coded.
 6. **Document studio import:** can create a new synthetic patient/encounter after source verification. An existing patient with a different encounter is rejected because findings are currently keyed by patient ID; it is not silently merged. This new branch needs dedicated testing.
 7. **Dependency/deployment preparation:** OpenAI SDK is now in core `requirements.txt`; `.python-version` says 3.12; `.github/workflows/tests.yml` proposes a Python 3.12 Ubuntu test job. The CI file has not been pushed or observed running. A version file does not guarantee the hosting provider selects that runtime: check deployment settings.
@@ -80,7 +80,7 @@ Verified earlier: private GitHub publication, local app health response, the ori
 
 Two browser tabs were opened in the Codex in-app browser:
 
-- Local ResistLens: `http://127.0.0.1:8501/`. The agent selected **AI connection**, where Yiyi can enter her key and accessible model ID and click **Save connection for this session**. Saving alone sends no inference request. Subsequent browser inspection should avoid reading or exposing credentials. Tab identifiers are session-specific; rediscover them rather than assuming old handles remain valid.
+- Local TraceRx: `http://127.0.0.1:8501/`. The agent selected **AI connection**, where Yiyi can enter her key and accessible model ID and click **Save connection for this session**. Saving alone sends no inference request. Subsequent browser inspection should avoid reading or exposing credentials. Tab identifiers are session-specific; rediscover them rather than assuming old handles remain valid.
 - Streamlit Community Cloud: `https://share.streamlit.io/`. It showed **Continue to sign-in**, with text stating that signing in agrees to Terms of Service. The agent did not accept those terms or complete sign-in.
 
 An asynchronous question asked Yiyi to complete Streamlit sign-in herself and report when done. No completion reply was observed before this checkpoint. Browser policy required action-time approval for accepting new terms; the agent chose to hand that user action back. This is an external sign-in prerequisite, not an application error.
@@ -96,7 +96,7 @@ Useful official references:
 - https://docs.streamlit.io/deploy/streamlit-community-cloud/share-your-app
 - https://platform.openai.com/docs/guides/structured-outputs
 
-Hosting can be free while inference incurs provider charges. Report that distinction plainly. Preserve the private source repository unless Yiyi explicitly requests a visibility change. Once sign-in and access are available, use repository `BluePaper1122/resistlens`, branch `main`, entry point `app.py`; verify the exact deployed app and access audience before claiming publication.
+Hosting can be free while inference incurs provider charges. Report that distinction plainly. Preserve the private source repository unless Yiyi explicitly requests a visibility change. Once sign-in and access are available, use repository `BluePaper1122/tracerx`, branch `main`, entry point `app.py`; verify the exact deployed app and access audience before claiming publication.
 
 ### Recommended continuation sequence
 
@@ -119,11 +119,11 @@ Last inspected: 2026-09-12. This document describes the working directory, inclu
 
 ## 1. Purpose, audience, and HackRice positioning
 
-**Close the evidence-to-review gap.** ResistLens is a synthetic antimicrobial-stewardship workflow demonstration. Its question is: **When new final microbiology evidence arrives after an active antimicrobial order, is a review of that exact evidence and order documented in the available record?**
+**Close the evidence-to-review gap.** TraceRx is a synthetic antimicrobial-stewardship workflow demonstration. Its question is: **When new final microbiology evidence arrives after an active antimicrobial order, is a review of that exact evidence and order documented in the available record?**
 
 The intended users are stewardship pharmacists, clinicians, and hospital quality/operations teams who need visibility into information-continuity gaps across reports, orders, and review documentation. These are intended personas; no actual hospital adoption or user study is established by this repository. Missing review documentation does not prove a clinician failed to review something, because the available record may be incomplete.
 
-The HackRice pitch combines an understandable healthcare workflow problem, visible image-to-structured-data AI, deterministic and explainable temporal rules, provenance, a polished demonstration, and measurable software behavior. This is a positioning strategy, not a promise of winning or verified claims about current judging criteria. Earlier discussion considered computational-biology/ChimeraX ideas but selected ResistLens for a team with VLM/domain experience and limited software-development experience. Keep the system understandable and Python-first while delivering a complete, polished experience; do not shrink it to a bare shell in the name of reliability.
+The HackRice pitch combines an understandable healthcare workflow problem, visible image-to-structured-data AI, deterministic and explainable temporal rules, provenance, a polished demonstration, and measurable software behavior. This is a positioning strategy, not a promise of winning or verified claims about current judging criteria. Earlier discussion considered computational-biology/ChimeraX ideas but selected TraceRx for a team with VLM/domain experience and limited software-development experience. Keep the system understandable and Python-first while delivering a complete, polished experience; do not shrink it to a bare shell in the name of reliability.
 
 AMR is the motivation, not a measured outcome. The repository does not demonstrate reduced resistance, improved treatment, reduced mortality, prescribing quality, or avoided clinical harm.
 
@@ -345,9 +345,9 @@ Existing VALIDATION.md records 61 passing tests and perfect local regression cou
 ## 11. Repository map (observed files)
 
 ```text
-resistlens/                         repository root (folder itself)
+tracerx/                         repository root (folder itself)
 ├── app.py                        Streamlit UI, navigation, session imports/reviews/exports
-├── resistlens/                   Python package
+├── tracerx/                   Python package
 │   ├── __init__.py
 │   ├── models.py                 contracts, provenance, readiness
 │   ├── engine.py                 independent deterministic rule v1.0
@@ -371,7 +371,7 @@ resistlens/                         repository root (folder itself)
 ├── AGENT_CONTEXT.md              this handoff
 ├── evaluation.json               existing saved regression output
 ├── synthetic-documents.zip       existing source pack
-├── Launch ResistLens.command     Mac launcher
+├── Launch TraceRx.command     Mac launcher
 ├── requirements.txt              current core dependencies, including OpenAI SDK
 ├── requirements-ai.txt           auxiliary AI install entry
 ├── requirements-dev.txt          pytest and core dependencies
@@ -410,10 +410,10 @@ Verification commands:
 
 ```bash
 python -m pytest -q
-python -m resistlens.evaluation
+python -m tracerx.evaluation
 # Optional real API calls; configure account/model first:
-python -m resistlens.evaluation --live --output live-evaluation.json
-python -m resistlens.benchmark --live --split development --limit 3 --output benchmark-result.json
+python -m tracerx.evaluation --live --output live-evaluation.json
+python -m tracerx.benchmark --live --split development --limit 3 --output benchmark-result.json
 ```
 
 The benchmark CLI's exit status reports extraction failures, not a requirement for perfect accuracy; inspect the metrics. No live call is necessary for this documentation handoff.
@@ -422,7 +422,7 @@ The benchmark CLI's exit status reports extraction failures, not a requirement f
 
 Use this language in the product and pitch:
 
-> Research demonstration only. All cases and documents are invented. ResistLens identifies potential review-documentation gaps in the available synthetic record. It does not diagnose, prescribe, recommend antibiotics, recommend or automate medication changes, determine resistance, assess treatment appropriateness, or provide treatment advice. Reviewed and No trigger are workflow states, not clinical safety judgments. A flag does not prove that no review occurred outside the available record.
+> Research demonstration only. All cases and documents are invented. TraceRx identifies potential review-documentation gaps in the available synthetic record. It does not diagnose, prescribe, recommend antibiotics, recommend or automate medication changes, determine resistance, assess treatment appropriateness, or provide treatment advice. Reviewed and No trigger are workflow states, not clinical safety judgments. A flag does not prove that no review occurred outside the available record.
 
 Only invented records are supported. Do not upload actual patient records, enable a real clinical workflow, claim compliance/certification, or describe a demo source-verification checkbox as clinical authorization. Do not infer susceptible/resistant categories or use susceptibility presence as a drug recommendation. Do not create default clinical deadlines. Missing data must remain visible rather than silently cleared. Keep secrets out of code, logs, exports and Git. The app has no durable storage, authentication or production governance; deployment configuration files alone do not establish production readiness.
 
@@ -438,7 +438,7 @@ The team is not tech-heavy. Prefer small readable Python modules, clear labels, 
 
 ## 15. Three-minute pitch and rehearsal
 
-0:00–0:25: “When final microbiology evidence arrives after an active antimicrobial order, can we see whether a review is documented? ResistLens makes that gap visible and traceable using synthetic records.” Show Overview: six cases, two awaiting review, one needing verification, one reviewed, two without a trigger.
+0:00–0:25: “When final microbiology evidence arrives after an active antimicrobial order, can we see whether a review is documented? TraceRx makes that gap visible and traceable using synthetic records.” Show Overview: six cases, two awaiting review, one needing verification, one reviewed, two without a trigger.
 
 0:25–1:00: DEMO-101 at hour 27 then 28. Explain that evidence arrival creates an exact order/report review pair, not a treatment recommendation. Show timestamps and sources.
 

@@ -123,7 +123,7 @@ class TextAdapter:
     def extract(self, text: str) -> Document:
         if len(text.encode()) > MAX_BYTES:
             raise ExtractionError('Text exceeds 8 MB.')
-        if not text.startswith('RESISTLENS | SYNTHETIC TRAINING DOCUMENT'):
+        if not text.startswith('TRACERX | SYNTHETIC TRAINING DOCUMENT'):
             raise ExtractionError('Use the bundled synthetic labeled-text format.')
         values = {k: None for k in ClinicalEvent.model_fields if k != 'evidence'}
         evidence = []

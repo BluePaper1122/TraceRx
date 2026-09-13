@@ -101,7 +101,7 @@ def test_trap_scorecard_and_transfer_lookup():
     assert len(app.session_state['cases'][0].documents)==2
 
 def test_import_new_patient_and_reject_conflicting_encounter():
-    from resistlens.fixtures import make_document, DEMO_NOW
+    from tracerx.fixtures import make_document, DEMO_NOW
     for patient,encounter,accepted in [('SYN-NEW','SYN-VISIT',True),('DEMO-101','OTHER-VISIT',False)]:
         app=AppTest.from_file(APP,default_timeout=30).run()
         app.sidebar.radio[0].set_value('Document studio').run()

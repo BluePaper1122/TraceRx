@@ -1,11 +1,11 @@
 from datetime import timedelta
 import pytest
 from pydantic import ValidationError
-from resistlens.fixtures import DEMO_NOW as NOW
-from resistlens.risk_models import *
-from resistlens.risk_engine import calculate_drug_risk, decay_weight
-from resistlens.risk_ui import demo_profile
-from resistlens.ledger import MockLedger
+from tracerx.fixtures import DEMO_NOW as NOW
+from tracerx.risk_models import *
+from tracerx.risk_engine import calculate_drug_risk, decay_weight
+from tracerx.risk_ui import demo_profile
+from tracerx.ledger import MockLedger
 
 @pytest.mark.parametrize('category,days,expected',[
     ('routine',6*30.44,1),('routine',6*30.44+.01,.5),('routine',12*30.44,.5),

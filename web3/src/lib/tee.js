@@ -1,5 +1,5 @@
-const VAULT_KEY = "resistlens.web3.tee.v1";
-const ATTEST_KEY = "resistlens.web3.attest.v1";
+const VAULT_KEY = "tracerx.web3.tee.v1";
+const ATTEST_KEY = "tracerx.web3.attest.v1";
 
 function randomAttestation() {
   const bytes = new Uint8Array(16);

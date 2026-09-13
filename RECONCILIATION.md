@@ -1,10 +1,10 @@
-# ResistLens: document-to-code reconciliation and execution plan
+# TraceRx: document-to-code reconciliation and execution plan
 
 This audit uses both attached AGENT_CONTEXT.md versions, the attached implementation plan, the actual local repository and authenticated GitHub inspection on 2026-09-12. Source and fresh tests take precedence over narrative claims.
 
 ## Repository evidence at arrival
 
-Local checkout: `/Users/ysun26/Documents/Codex/2026-09-11/referenced-chatgpt-conversation-this-is-an/outputs/resistlens`, branch main, HEAD `d475ee1`. Actual remote main was `5d997b9fe9b7933d964c8461f083d6db1437df7d`, a README-only edit. Fetched and fast-forwarded that edit without disturbing local modifications. A pre-edit archive was saved in this task's work directory.
+Local checkout: `/Users/ysun26/Documents/Codex/2026-09-11/referenced-chatgpt-conversation-this-is-an/outputs/tracerx`, branch main, HEAD `d475ee1`. Actual remote main was `5d997b9fe9b7933d964c8461f083d6db1437df7d`, a README-only edit. Fetched and fast-forwarded that edit without disturbing local modifications. A pre-edit archive was saved in this task's work directory.
 
 | Area | Actual state at arrival | Work in this task |
 |---|---|---|
@@ -20,7 +20,7 @@ Local checkout: `/Users/ysun26/Documents/Codex/2026-09-11/referenced-chatgpt-con
 | Tests/docs | 61 tests passed locally; docs inconsistent | 95 tests pass; README/validation/handoff/deployment/demo updated |
 | Live inference/deployment | No measured report or verified hosted URL established | Still outstanding; preparation and acceptance steps documented |
 
-Pre-existing tracked modifications were exactly app.py, requirements.txt and resistlens/extraction.py. Untracked product files were .github/, .python-version, AGENT_CONTEXT.md, benchmark_data/, resistlens/benchmark.py and resistlens/live_ui.py. Finder .DS_Store files were left on disk and ignored, not staged. No key or real patient data was used.
+Pre-existing tracked modifications were exactly app.py, requirements.txt and tracerx/extraction.py. Untracked product files were .github/, .python-version, AGENT_CONTEXT.md, benchmark_data/, tracerx/benchmark.py and tracerx/live_ui.py. Finder .DS_Store files were left on disk and ignored, not staged. No key or real patient data was used.
 
 ## Documentation corrections and design decisions
 

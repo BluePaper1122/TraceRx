@@ -2,7 +2,7 @@ import { chromium } from "playwright";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 
-const output = path.resolve("artifacts", "resistlens-qa");
+const output = path.resolve("artifacts", "tracerx-qa");
 await mkdir(output, { recursive: true });
 
 const browser = await chromium.launch({ headless: true });
@@ -15,11 +15,11 @@ try {
   });
   await desktop.screenshot({ path: path.join(output, "reference-tool.png"), fullPage: true });
 
-  await desktop.goto("https://resistlens.onrender.com/", {
+  await desktop.goto("https://tracerx.onrender.com/", {
     waitUntil: "networkidle",
     timeout: 90000,
   });
-  await desktop.screenshot({ path: path.join(output, "live-resistlens.png"), fullPage: true });
+  await desktop.screenshot({ path: path.join(output, "live-tracerx.png"), fullPage: true });
 
   await desktop.goto("http://127.0.0.1:8010/", {
     waitUntil: "networkidle",

@@ -60,5 +60,5 @@
     "n_test": 1000,
     "test_susceptible_rate": 0.457
   },
-  "disclaimer": "Trained entirely on fabricated synthetic data generated for this hackathon demo. Not real hospital data, not a validated clinical model, and not connected to any real antimicrobial-resistance epidemiology. Kept separate from ResistLens's deterministic resistance-risk scorecard."
+  "disclaimer": "Trained entirely on fabricated synthetic data generated for this hackathon demo. Not real hospital data, not a validated clinical model, and not connected to any real antimicrobial-resistance epidemiology. Kept separate from TraceRx's deterministic resistance-risk scorecard."
 }

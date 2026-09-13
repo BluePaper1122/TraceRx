@@ -17,7 +17,7 @@ test("patient #2 ESBL score is high / avoid", () => {
   assert.equal(s.patientId, "2");
   assert.ok(s.probability >= 0.6);
   assert.equal(s.band, "avoid");
-  assert.equal(s.parentProduct, "ResistLens");
+  assert.equal(s.parentProduct, "TraceRx");
   assert.equal(s.module, "immunity");
 });
 

@@ -79,4 +79,4 @@ def benchmark_page():
         z.write(ROOT/'DATASET_CARD.md','DATASET_CARD.md')
         for s in samples:
             z.write(ROOT/s['image'],s['image'])
-    st.download_button('Download all 48 images and labels',out.getvalue(),'resistlens-vision-benchmark.zip','application/zip')
+    st.download_button('Download all 48 images and labels',out.getvalue(),'tracerx-vision-benchmark.zip','application/zip')

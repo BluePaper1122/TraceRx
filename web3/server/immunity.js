@@ -1,5 +1,5 @@
 /**
- * Immunity module (readme-3) — synthetic CDS nested under ResistLens.
+ * Immunity module (readme-3) — synthetic CDS nested under TraceRx.
  * Roster: Patient #2 worked example + traps #4 / #7 / #10.
  */
 
@@ -194,6 +194,6 @@ export function scorePatient(id, drug = "ceftriaxone") {
     band,
     steps,
     module: "immunity",
-    parentProduct: "ResistLens",
+    parentProduct: "TraceRx",
   };
 }

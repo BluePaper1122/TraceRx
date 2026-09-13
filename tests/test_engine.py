@@ -1,9 +1,9 @@
 from datetime import timedelta, datetime
 import pytest
-from resistlens.fixtures import demo_cases, DEMO_NOW, make_document
-from resistlens.models import ClinicalEvent, readiness
-from resistlens.engine import evaluate, case_state
-from resistlens.evaluation import EXPECTED
+from tracerx.fixtures import demo_cases, DEMO_NOW, make_document
+from tracerx.models import ClinicalEvent, readiness
+from tracerx.engine import evaluate, case_state
+from tracerx.evaluation import EXPECTED
 
 @pytest.mark.parametrize('case', demo_cases(), ids=lambda c: c.patient_id)
 def test_authored_cases(case):

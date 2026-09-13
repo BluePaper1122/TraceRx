@@ -1,7 +1,7 @@
 # Deployment preparation
 
 1. Sign in to [Streamlit Community Cloud](https://share.streamlit.io/) using the account that can access the private repository. Complete any account authorization yourself.
-2. Choose Create app, then the existing-app option. Set repository `BluePaper1122/resistlens`, branch `main`, entry file `app.py`.
+2. Choose Create app, then the existing-app option. Set repository `BluePaper1122/tracerx`, branch `main`, entry file `app.py`.
 3. In Advanced settings choose Python 3.12, matching CI. A `.python-version` file alone does not set the cloud runtime. Leave shared OpenAI secrets empty; visitors configure their own session connection.
 4. Deploy the intended tested commit. Keep the source repository private. Choose the app's audience deliberately in sharing settings and record the actual generated URL.
 5. Check the hosted guided walkthrough, all eight destinations, scorecard and mock transfer lookup, extraction/import, ZIP/JSON downloads and reset behavior. Open two independent browser sessions and confirm cases, transfer history and keys do not cross sessions.

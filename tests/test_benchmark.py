@@ -1,8 +1,8 @@
 import hashlib
 from copy import deepcopy
 import pytest
-from resistlens.benchmark import ROOT,FIELDS,load_manifest,base_documents,run_samples,score_event
-from resistlens.extraction import ExtractionError
+from tracerx.benchmark import ROOT,FIELDS,load_manifest,base_documents,run_samples,score_event
+from tracerx.extraction import ExtractionError
 
 def test_manifest_split_hashes_and_labels():
     samples=load_manifest()

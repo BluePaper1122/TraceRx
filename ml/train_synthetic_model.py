@@ -3,7 +3,7 @@ data, then saves it for the '/api/ml-demo' endpoint to load at runtime.
 
 This is NOT trained on real hospital data, real patients, or real
 antimicrobial-resistance rates. It exists to demonstrate what a trained
-statistical model looks like next to ResistLens's deterministic rule engine
+statistical model looks like next to TraceRx's deterministic rule engine
 -- nothing here should be read as a clinical claim. Every organism and
 antibiotic name below is a synthetic label, consistent with the rest of
 this project's synthetic-data policy.
@@ -152,7 +152,7 @@ def main():
                     "Trained entirely on fabricated synthetic data generated for this "
                     "hackathon demo. Not real hospital data, not a validated clinical "
                     "model, and not connected to any real antimicrobial-resistance "
-                    "epidemiology. Kept separate from ResistLens's deterministic "
+                    "epidemiology. Kept separate from TraceRx's deterministic "
                     "resistance-risk scorecard."
                 ),
             },

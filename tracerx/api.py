@@ -31,7 +31,7 @@ from .ledger import MockLedger
 from .ai_explain import explain, ExplainError
 from . import db as durable
 
-app = FastAPI(title='ResistLens synthetic API', docs_url=None, redoc_url=None)
+app = FastAPI(title='TraceRx synthetic API', docs_url=None, redoc_url=None)
 SESSIONS = {}
 REGISTRY_LOCK = RLock()
 TTL = 3600
@@ -465,11 +465,11 @@ def audit_history():
 @app.get('/api/export/{kind}')
 def export(kind: str,s=Depends(session)):
     bundle={'as_of':s.at.isoformat(),'rule_version':RULE_VERSION,'cases':[c.model_dump(mode='json') for c in s.cases],'audit':s.audit}
-    if kind=='session':return JSONResponse(bundle,headers={'Content-Disposition':'attachment; filename="resistlens-session.json"'})
+    if kind=='session':return JSONResponse(bundle,headers={'Content-Disposition':'attachment; filename="tracerx-session.json"'})
     if kind=='queue':
         out=io.StringIO();writer=csv.writer(out);writer.writerow(['Patient','Scenario','Unit','State'])
         for c in s.cases:writer.writerow([c.patient_id,c.label,c.unit,case_state(evaluate(c,s.at))])
-        return Response(out.getvalue(),media_type='text/csv',headers={'Content-Disposition':'attachment; filename="resistlens-queue.csv"'})
+        return Response(out.getvalue(),media_type='text/csv',headers={'Content-Disposition':'attachment; filename="tracerx-queue.csv"'})
     if kind not in ('evidence','dataset','samples'):raise HTTPException(404,'Unknown export.')
     out=io.BytesIO()
     with ZipFile(out,'w',ZIP_DEFLATED) as z:
@@ -483,7 +483,7 @@ def export(kind: str,s=Depends(session)):
             for c in demo_cases():
                 for d in c.documents:
                     z.writestr(d.event.event_id+'.png',render_document(d));z.writestr(d.event.event_id+'.txt',d.text)
-    return Response(out.getvalue(),media_type='application/zip',headers={'Content-Disposition':f'attachment; filename="resistlens-{kind}.zip"'})
+    return Response(out.getvalue(),media_type='application/zip',headers={'Content-Disposition':f'attachment; filename="tracerx-{kind}.zip"'})
 
 DIST=Path(__file__).resolve().parents[1]/'web'/'dist'
 if DIST.exists():

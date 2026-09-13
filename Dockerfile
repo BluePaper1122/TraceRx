@@ -12,7 +12,7 @@ FROM python:3.12-slim
 WORKDIR /app
 COPY requirements.txt requirements-api.txt ./
 RUN pip install --no-cache-dir -r requirements-api.txt
-COPY resistlens/ ./resistlens/
+COPY tracerx/ ./tracerx/
 COPY ml/ ./ml/
 COPY benchmark_data/ ./benchmark_data/
 COPY --from=frontend /build/dist ./web/dist
@@ -22,4 +22,4 @@ USER appuser
 
 ENV PORT=8000
 EXPOSE 8000
-CMD ["sh", "-c", "uvicorn resistlens.api:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1"]
+CMD ["sh", "-c", "uvicorn tracerx.api:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1"]

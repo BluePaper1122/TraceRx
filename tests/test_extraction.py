@@ -1,9 +1,9 @@
 import io
 import pytest
 from PIL import Image
-from resistlens.extraction import DemoAdapter, TextAdapter, OpenAIAdapter, ExtractionError, validate_image
-from resistlens.fixtures import demo_cases, render_document
-from resistlens.evaluation import run_evaluation
+from tracerx.extraction import DemoAdapter, TextAdapter, OpenAIAdapter, ExtractionError, validate_image
+from tracerx.fixtures import demo_cases, render_document
+from tracerx.evaluation import run_evaluation
 
 def test_all_synthetic_text_regressions():
     report = run_evaluation()
@@ -111,7 +111,7 @@ def test_provider_failures_have_safe_public_categories(monkeypatch, kind, expect
 
 @pytest.mark.parametrize('label', ['Report version ID | ', 'Report version ID: ', 'report_id: '])
 def test_report_version_quote_cannot_support_event_id(label):
-    from resistlens.models import readiness
+    from tracerx.models import readiness
     doc = demo_cases()[0].documents[1].model_copy(deep=True)
     doc.text = ''  # Live images have no independent source transcription.
     doc.event.event_id = doc.event.report_id
@@ -121,14 +121,14 @@ def test_report_version_quote_cannot_support_event_id(label):
 
 @pytest.mark.parametrize('label', ['Record ID | ', 'Event ID: ', 'event_id: '])
 def test_explicit_record_label_supports_event_id(label):
-    from resistlens.models import readiness
+    from tracerx.models import readiness
     doc = demo_cases()[0].documents[1].model_copy(deep=True)
     doc.text = ''
     next(e for e in doc.event.evidence if e.field == 'event_id').quote = label + doc.event.event_id
     assert readiness(doc)['eligible']
 
 def test_equal_identifiers_are_allowed_with_independent_source_labels():
-    from resistlens.models import readiness
+    from tracerx.models import readiness
     doc = demo_cases()[0].documents[1].model_copy(deep=True)
     doc.text = ''
     doc.event.event_id = doc.event.report_id
@@ -136,7 +136,7 @@ def test_equal_identifiers_are_allowed_with_independent_source_labels():
     assert readiness(doc)['eligible']
 
 def test_identifier_value_must_match_labeled_image_quote():
-    from resistlens.models import readiness
+    from tracerx.models import readiness
     doc = demo_cases()[0].documents[1].model_copy(deep=True)
     doc.text = ''
     next(e for e in doc.event.evidence if e.field == 'event_id').quote = 'Record ID | different-value'
