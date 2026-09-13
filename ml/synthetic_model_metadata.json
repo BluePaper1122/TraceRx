@@ -1,0 +1,64 @@
+{
+  "categorical_cols": [
+    "organism",
+    "antibiotic",
+    "culture_description",
+    "ordering_mode",
+    "age_bucket",
+    "gender"
+  ],
+  "numeric_cols": [
+    "prior_organism_count",
+    "days_since_prior_organism",
+    "class_exposure_30d",
+    "class_exposure_90d",
+    "class_exposure_365d",
+    "subtype_exposure_30d",
+    "subtype_exposure_90d",
+    "subtype_exposure_365d"
+  ],
+  "organisms": [
+    "Organism A",
+    "Organism B",
+    "Organism C",
+    "Organism D"
+  ],
+  "antibiotics": [
+    "Antibiotic 1",
+    "Antibiotic 2",
+    "Antibiotic 3",
+    "Antibiotic 4",
+    "Antibiotic 5",
+    "Antibiotic 6"
+  ],
+  "culture_descriptions": [
+    "Synthetic blood",
+    "Synthetic urine",
+    "Synthetic wound",
+    "Synthetic respiratory"
+  ],
+  "ordering_modes": [
+    "Routine",
+    "Stat"
+  ],
+  "age_buckets": [
+    "0-17",
+    "18-40",
+    "41-65",
+    "66+"
+  ],
+  "genders": [
+    "Female",
+    "Male",
+    "Unknown"
+  ],
+  "metrics": {
+    "auroc": 0.6617,
+    "auprc": 0.5982,
+    "brier_score": 0.23,
+    "n_train": 3000,
+    "n_test": 1000,
+    "test_susceptible_rate": 0.457
+  },
+  "disclaimer": "Trained entirely on fabricated synthetic data generated for this hackathon demo. Not real hospital data, not a validated clinical model, and not connected to any real antimicrobial-resistance epidemiology. Kept separate from ResistLens's deterministic resistance-risk scorecard."
+}

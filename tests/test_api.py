@@ -107,3 +107,42 @@ def test_incremental_benchmark(client,monkeypatch):
     assert second['documents']==2 and second['scored_documents']==0 and second['failures']==2
     assert second['field_accuracy'] is None
     assert client.post('/api/benchmark/run',json={'ids':[rows[1]['sample_id']],'consent':True,'restart':False}).status_code==409
+
+def test_synthetic_model_demo_metadata_and_rank(client):
+    metadata = client.get('/api/ml-demo/metadata')
+    assert metadata.status_code == 200
+    info = metadata.json()
+    assert info['metrics']['n_train'] == 3000
+    assert 'fabricated synthetic data' in info['disclaimer']
+
+    body = {
+        'organism': info['organisms'][0],
+        'culture_description': info['culture_descriptions'][0],
+        'ordering_mode': info['ordering_modes'][0],
+        'age_bucket': info['age_buckets'][1],
+        'gender': info['genders'][0],
+        'prior_organism_count': 1,
+        'days_since_prior_organism': 30,
+        'class_exposure_30d': 1,
+        'class_exposure_90d': 2,
+        'class_exposure_365d': 3,
+        'subtype_exposure_30d': 0,
+        'subtype_exposure_90d': 1,
+        'subtype_exposure_365d': 2,
+        'candidates': info['antibiotics'][:4],
+    }
+    ranked = client.post('/api/ml-demo/rank', json=body)
+    assert ranked.status_code == 200
+    results = ranked.json()['results']
+    assert [row['rank'] for row in results] == [1, 2, 3, 4]
+    assert [row['predicted_susceptibility'] for row in results] == sorted(
+        [row['predicted_susceptibility'] for row in results], reverse=True
+    )
+    assert all(0 <= row['predicted_susceptibility'] <= 1 for row in results)
+    assert 'never enter the deterministic resistance scorecard' in ranked.json()['scope']
+
+    invalid = client.post('/api/ml-demo/rank', json={**body, 'candidates': ['Not a model category']})
+    assert invalid.status_code == 400
+
+    decreasing = client.post('/api/ml-demo/rank', json={**body, 'class_exposure_30d': 3, 'class_exposure_90d': 2})
+    assert decreasing.status_code == 400

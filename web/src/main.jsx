@@ -9,6 +9,7 @@ const pages = [
   "Evaluation lab",
   "AI connection",
   "Vision benchmark",
+  "Synthetic model lab",
   "About & demo",
 ];
 const scenarios = [
@@ -134,6 +135,26 @@ function save(data, name) {
   a.download = name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function StorageStatus({ api }) {
+  const [info, set] = useState(null);
+  useEffect(() => {
+    let active = true;
+    api("/audit/history")
+      .then((d) => active && set(d))
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+  if (!info) return null;
+  return (
+    <p className="muted">
+      {info.enabled
+        ? "Durable storage connected · audit log persisted"
+        : "Durable storage not configured · in-memory only"}
+    </p>
+  );
 }
 function App() {
   const [token, T] = useState(""),
@@ -273,6 +294,7 @@ function App() {
                 ? "AI connection verified for this session"
                 : "Demo mode · no AI key connected"}
             </p>
+            <StorageStatus api={api} />
             <Check checked={reset} onChange={R}>
               Confirm session reset
             </Check>
@@ -297,7 +319,10 @@ function App() {
             <small>HACKRICE 2026 · EVIDENCE REVIEW</small>
             <h1>ResistLens</h1>
             <h2>Close the evidence-to-review gap.</h2>
-            <p>Bring source evidence, <strong>deterministic checks</strong>, and human review into one traceable workspace.</p>
+            <p>
+              Bring source evidence, <strong>deterministic checks</strong>, and
+              human review into one traceable workspace.
+            </p>
             <div className="tags">
               <span>Deterministic rules</span>
               <span>Source provenance</span>
@@ -305,9 +330,18 @@ function App() {
             </div>
           </div>
           <div className="evidence-rail" aria-label="Evidence review workflow">
-            <div className="rail-node"><small>01 · SOURCE</small><p>New evidence arrives</p></div>
-            <div className="rail-node"><small>02 · RECONCILE</small><p>Check the active order</p></div>
-            <div className="rail-node"><small>03 · REVIEW</small><p>Trace the documented review</p></div>
+            <div className="rail-node">
+              <small>01 · SOURCE</small>
+              <p>New evidence arrives</p>
+            </div>
+            <div className="rail-node">
+              <small>02 · RECONCILE</small>
+              <p>Check the active order</p>
+            </div>
+            <div className="rail-node">
+              <small>03 · REVIEW</small>
+              <p>Trace the documented review</p>
+            </div>
           </div>
         </header>
         <p className="disclaimer">
@@ -344,6 +378,8 @@ function App() {
               <Connection {...ctx} />
             ) : page === pages[6] ? (
               <Benchmark {...ctx} />
+            ) : page === pages[7] ? (
+              <SyntheticModelLab {...ctx} />
             ) : (
               <About {...ctx} />
             )}
@@ -633,7 +669,270 @@ function ReviewForm({ c, api, setState, run, busy, success }) {
     </fieldset>
   );
 }
-function Risk({ api, patient, state, run, busy }) {
+const FLAG_LABELS = {
+  BASELINE_UNAVAILABLE:
+    "No matching local baseline — using the 0.15 illustrative fallback",
+  DATA_UNAVAILABLE: "Transfer records unavailable from the source institution",
+  DATA_GAP_UNORDERED: "Susceptibility test not ordered",
+  TEST_STATUS_UNKNOWN: "Test status unknown",
+  AGED_POSITIVE:
+    "Positive evidence present, but aged — weighted down rather than dropped",
+  DOCUMENTED_INPUTS: "All inputs for this scorecard are documented",
+};
+function riskBand(score) {
+  if (score >= 0.6) return { key: "high", label: "Higher", symbol: "●" };
+  if (score >= 0.35) return { key: "moderate", label: "Moderate", symbol: "▲" };
+  return { key: "low", label: "Lower", symbol: "✓" };
+}
+function RiskBadge({ score }) {
+  const band = riskBand(score);
+  return (
+    <span className={"risk-badge risk-" + band.key}>
+      <span aria-hidden="true">{band.symbol}</span>
+      {band.label.toUpperCase()} · {(score * 100).toFixed(0)}%
+    </span>
+  );
+}
+function DataQualityFlags({ flags }) {
+  if (!flags?.length) return null;
+  return (
+    <ul className="flags">
+      {flags.map((f) => (
+        <li
+          key={f}
+          className={
+            "flag " + (f === "DOCUMENTED_INPUTS" ? "flag-ok" : "flag-gap")
+          }
+        >
+          {FLAG_LABELS[f] || f}
+        </li>
+      ))}
+    </ul>
+  );
+}
+function EvidenceFactor({ f }) {
+  const dots = Math.max(
+    0,
+    Math.min(5, Math.round((f.decay_modifier ?? 1) * 5)),
+  );
+  const sign = f.adjustment > 0 ? "+" : "";
+  return (
+    <div className="factor">
+      <div className="factor-head">
+        <strong>{f.factor}</strong>
+        <span
+          className={
+            "adj " +
+            (f.adjustment > 0 ? "up" : f.adjustment < 0 ? "down" : "flat")
+          }
+        >
+          {sign}
+          {f.adjustment.toFixed(2)}
+        </span>
+      </div>
+      <p>{f.explanation}</p>
+      {f.source_quote && <p className="quote">“{f.source_quote}”</p>}
+      <div className="factor-meta">
+        <span
+          className="dots"
+          aria-label={
+            "Evidence weight " + (f.decay_modifier ?? 1).toFixed(2) + " of 1"
+          }
+        >
+          {Array.from({ length: 5 }).map((_, i) => (
+            <i key={i} className={i < dots ? "on" : ""} />
+          ))}
+        </span>
+        <small>
+          {f.source_date
+            ? new Date(f.source_date).toLocaleDateString()
+            : "No date · policy default"}
+        </small>
+      </div>
+    </div>
+  );
+}
+function TransferLookup({
+  api,
+  patient,
+  scenario,
+  run,
+  busy,
+  success,
+  onResult,
+}) {
+  const [stage, Stage] = useState("idle");
+  function start() {
+    Stage("searching");
+    const reduced =
+      typeof matchMedia === "function" &&
+      matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const unit = reduced ? 40 : 550;
+    setTimeout(() => Stage("verifying"), unit);
+    setTimeout(() => Stage("ready"), unit * 2);
+  }
+  function apply() {
+    run(async () => {
+      const result = await api("/risk", {
+        patient_id: patient,
+        scenario,
+        lookup: true,
+      });
+      onResult(result);
+      Stage("idle");
+      success("Verified transfer record applied to this patient's scorecard.");
+    });
+  }
+  if (stage === "idle")
+    return (
+      <button disabled={busy} onClick={start}>
+        Retrieve verified transfer record
+      </button>
+    );
+  return (
+    <div className="notice lookup">
+      <p>
+        <strong>Fictional hospital B</strong> · resistance-relevant record
+        lookup
+      </p>
+      <ul className="stage-list">
+        <li className={stage !== "searching" ? "done" : ""}>
+          {stage === "searching"
+            ? "Contacting participating institution…"
+            : "Institution contacted"}
+        </li>
+        <li
+          className={
+            stage === "ready" ? "done" : stage === "verifying" ? "" : "pending"
+          }
+        >
+          {stage === "verifying"
+            ? "Verifying record fingerprint…"
+            : stage === "ready"
+              ? "Record fingerprint verified"
+              : "Verify record fingerprint"}
+        </li>
+      </ul>
+      {stage === "ready" && (
+        <button className="primary" disabled={busy} onClick={apply}>
+          Apply verified record
+        </button>
+      )}
+    </div>
+  );
+}
+const SUGGESTED_QUESTIONS = [
+  "Which evidence affected this score most?",
+  "What information is still missing?",
+  "Why is aged evidence weighted differently?",
+];
+function Explain({ api, patient, scenario, run, busy }) {
+  const [open, Open] = useState(false),
+    [question, Q] = useState(SUGGESTED_QUESTIONS[0]),
+    [result, R] = useState(null),
+    [err, Err] = useState("");
+  function ask(q) {
+    Q(q);
+    Err("");
+    run(async () => {
+      try {
+        R(
+          await api("/explain", { patient_id: patient, scenario, question: q }),
+        );
+      } catch (e) {
+        Err(e.message);
+        R(null);
+      }
+    });
+  }
+  if (!open)
+    return (
+      <button onClick={() => Open(true)}>
+        Ask Clinical Evidence Assistant
+      </button>
+    );
+  return (
+    <div className="notice explain">
+      <p>
+        <strong>Clinical Evidence Assistant</strong> — explains this scorecard
+        only; it does not calculate the score.
+      </p>
+      <div className="actions">
+        {SUGGESTED_QUESTIONS.map((q) => (
+          <button key={q} disabled={busy} onClick={() => ask(q)}>
+            {q}
+          </button>
+        ))}
+      </div>
+      <label>
+        Ask your own question
+        <input
+          value={question}
+          onChange={(e) => Q(e.target.value)}
+          maxLength={500}
+        />
+      </label>
+      <button
+        className="primary"
+        disabled={busy || !question.trim()}
+        onClick={() => ask(question)}
+      >
+        Ask
+      </button>
+      {err && (
+        <p role="alert">
+          {err} The deterministic scorecard above remains available.
+        </p>
+      )}
+      {result && (
+        <div className="ai-response">
+          <h3>{result.title}</h3>
+          <p>{result.summary}</p>
+          {result.points?.length > 0 && (
+            <ul>
+              {result.points.map((p, i) => (
+                <li key={i}>{p}</li>
+              ))}
+            </ul>
+          )}
+          {result.sources?.length > 0 && (
+            <>
+              <p className="muted">Sources</p>
+              <ul className="sources">
+                {result.sources.map((s, i) => (
+                  <li key={i}>
+                    {s.label}
+                    {s.type ? " — " + s.type : ""}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {result.retrievedReferences?.length > 0 && (
+            <details>
+              <summary>Reference material retrieved</summary>
+              <ul>
+                {result.retrievedReferences.map((r) => (
+                  <li key={r.id}>
+                    {r.title} — {r.sourceLabel}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+          <p className="muted">
+            AI-generated explanation of a deterministic scorecard. The AI does
+            not calculate the score.
+            {result.provider
+              ? " Answered by " + result.provider + " · " + result.model + "."
+              : ""}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+function Risk({ api, patient, state, run, busy, success }) {
   const [scenario, S] = useState(scenarios[0]),
     [data, D] = useState(null),
     [error, E] = useState("");
@@ -662,47 +961,367 @@ function Risk({ api, patient, state, run, busy }) {
       />
       {error && <p role="alert">{error}</p>}
       {scenario === scenarios[2] && (
-        <button
-          disabled={busy}
-          onClick={() =>
-            run(async () =>
-              D(
-                await api("/risk", {
-                  patient_id: patient,
-                  scenario,
-                  lookup: true,
-                }),
-              ),
-            )
-          }
-        >
-          Look up fictional transfer record
-        </button>
+        <TransferLookup
+          api={api}
+          patient={patient}
+          scenario={scenario}
+          run={run}
+          busy={busy}
+          success={success}
+          onResult={D}
+        />
       )}
       {data && (
         <>
-          <Metrics
-            values={{
-              "Baseline score": data.prediction.baseline_score.toFixed(2),
-              "Final score": data.prediction.final_score.toFixed(2),
-            }}
-          />
-          <p>{data.prediction.data_quality_flags.join(" · ")}</p>
-          <Table rows={data.prediction.reasoning_chain} />
+          <div className="scorecard-head">
+            <div className="metric">
+              <small>Baseline</small>
+              <strong>
+                {(data.prediction.baseline_score * 100).toFixed(0)}%
+              </strong>
+            </div>
+            <RiskBadge score={data.prediction.final_score} />
+          </div>
+          <DataQualityFlags flags={data.prediction.data_quality_flags} />
+          <div className="evidence-chain">
+            {data.prediction.reasoning_chain.map((f, i) => (
+              <EvidenceFactor f={f} key={f.source_event_id + i} />
+            ))}
+          </div>
+          <p className="muted">{data.prediction.scope}</p>
           <details>
             <summary>Structured prediction</summary>
             <Json value={data.prediction} />
           </details>
           {data.lookup && (
-            <details>
-              <summary>Mock ledger receipt</summary>
-              <Json value={data.lookup} />
-            </details>
+            <div className="notice">
+              <p>
+                <strong>Verified provenance</strong> ·{" "}
+                {data.lookup.state === "verified"
+                  ? "fingerprint matched"
+                  : data.lookup.state}
+              </p>
+              {data.lookup.institution && (
+                <p>Source institution: {data.lookup.institution}</p>
+              )}
+              {data.lookup.sha256 && (
+                <p className="code">
+                  Fingerprint: {data.lookup.sha256.slice(0, 16)}…
+                </p>
+              )}
+              <details>
+                <summary>Full ledger receipt</summary>
+                <Json value={data.lookup} />
+              </details>
+            </div>
           )}
+          <Explain
+            api={api}
+            patient={patient}
+            scenario={scenario}
+            run={run}
+            busy={busy}
+          />
           <button onClick={() => save(data, "resistlens-scorecard.json")}>
             Download scorecard
           </button>
         </>
+      )}
+    </>
+  );
+}
+function NumberField({ label, value, onChange, max = 80 }) {
+  return (
+    <label>
+      {label}
+      <input
+        type="number"
+        min="0"
+        max={max}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+      />
+    </label>
+  );
+}
+function SyntheticModelLab({ api, run, busy }) {
+  const [metadata, loadError] = useData(api, "/ml-demo/metadata"),
+    [tab, T] = useState("Predict"),
+    [form, F] = useState({
+      organism: "Organism A",
+      culture_description: "Synthetic urine",
+      ordering_mode: "Routine",
+      age_bucket: "41-65",
+      gender: "Unknown",
+      prior_organism_count: 1,
+      days_since_prior_organism: 45,
+      class_exposure_30d: 0,
+      class_exposure_90d: 1,
+      class_exposure_365d: 2,
+      subtype_exposure_30d: 0,
+      subtype_exposure_90d: 1,
+      subtype_exposure_365d: 1,
+    }),
+    [candidates, C] = useState([
+      "Antibiotic 1",
+      "Antibiotic 2",
+      "Antibiotic 3",
+      "Antibiotic 4",
+      "Antibiotic 5",
+      "Antibiotic 6",
+    ]),
+    [ranking, R] = useState(null);
+  const set = (key, value) => {
+    F((current) => ({ ...current, [key]: value }));
+    R(null);
+  };
+  const toggleCandidate = (candidate) => {
+    C((current) =>
+      current.includes(candidate)
+        ? current.filter((item) => item !== candidate)
+        : [...current, candidate],
+    );
+    R(null);
+  };
+  const exposureOrderValid =
+    form.class_exposure_30d <= form.class_exposure_90d &&
+    form.class_exposure_90d <= form.class_exposure_365d &&
+    form.subtype_exposure_30d <= form.subtype_exposure_90d &&
+    form.subtype_exposure_90d <= form.subtype_exposure_365d;
+  if (loadError) return <p role="alert">{loadError}</p>;
+  if (!metadata) return <p>Loading the synthetic teaching model...</p>;
+  return (
+    <>
+      <div className="notice model-boundary">
+        <strong>Separate, synthetic teaching model</strong>
+        <p>
+          This optional lab recreates the candidate-ranking workflow with a
+          model trained entirely on fabricated rows. It is not hospital evidence
+          and never changes the deterministic scorecard.
+        </p>
+      </div>
+      <div className="tabs">
+        {["Predict", "Model card"].map((name) => (
+          <button
+            key={name}
+            className={tab === name ? "active" : ""}
+            onClick={() => T(name)}
+          >
+            {name}
+          </button>
+        ))}
+      </div>
+      {tab === "Model card" ? (
+        <>
+          <h3>Held-out performance on fabricated data</h3>
+          <p>
+            These metrics measure only the generated test split. They do not
+            establish clinical accuracy, transportability, or patient benefit.
+          </p>
+          <Metrics
+            values={{
+              "Synthetic train rows": metadata.metrics.n_train,
+              "Synthetic test rows": metadata.metrics.n_test,
+              AUROC: metadata.metrics.auroc,
+              AUPRC: metadata.metrics.auprc,
+              "Brier score": metadata.metrics.brier_score,
+            }}
+          />
+          <details open>
+            <summary>Known limitations</summary>
+            <ul>
+              <li>
+                Every training row and label is fabricated by a seeded
+                generator.
+              </li>
+              <li>
+                Organisms and antibiotics are anonymous synthetic categories,
+                not clinical names.
+              </li>
+              <li>
+                The model estimates synthetic susceptibility, not clinical cure
+                or treatment success.
+              </li>
+              <li>
+                Results must not be used for diagnosis, prescribing, or patient
+                care.
+              </li>
+            </ul>
+          </details>
+        </>
+      ) : (
+        <fieldset disabled={busy}>
+          <div className="two model-layout">
+            <section className="model-form">
+              <h3>1. Patient and culture context</h3>
+              <div className="two compact-grid">
+                <Select
+                  label="Synthetic organism"
+                  value={form.organism}
+                  onChange={(v) => set("organism", v)}
+                  options={metadata.organisms}
+                />
+                <Select
+                  label="Culture site"
+                  value={form.culture_description}
+                  onChange={(v) => set("culture_description", v)}
+                  options={metadata.culture_descriptions}
+                />
+                <Select
+                  label="Ordering mode"
+                  value={form.ordering_mode}
+                  onChange={(v) => set("ordering_mode", v)}
+                  options={metadata.ordering_modes}
+                />
+                <Select
+                  label="Age bucket"
+                  value={form.age_bucket}
+                  onChange={(v) => set("age_bucket", v)}
+                  options={metadata.age_buckets}
+                />
+                <Select
+                  label="Gender category"
+                  value={form.gender}
+                  onChange={(v) => set("gender", v)}
+                  options={metadata.genders}
+                />
+              </div>
+
+              <h3>2. Prior positive culture</h3>
+              <p className="muted">
+                Optional history features used by the fabricated training
+                generator.
+              </p>
+              <div className="two compact-grid">
+                <NumberField
+                  label="Prior organism count"
+                  value={form.prior_organism_count}
+                  max={20}
+                  onChange={(v) => set("prior_organism_count", v)}
+                />
+                <NumberField
+                  label="Days since prior organism"
+                  value={form.days_since_prior_organism}
+                  max={720}
+                  onChange={(v) => set("days_since_prior_organism", v)}
+                />
+              </div>
+
+              <h3>3. Prior antibiotic exposure</h3>
+              <p className="muted">
+                Counts are cumulative; 30-day counts cannot exceed 90- or
+                365-day counts.
+              </p>
+              <div className="exposure-grid">
+                <NumberField
+                  label="Class / 30d"
+                  value={form.class_exposure_30d}
+                  max={20}
+                  onChange={(v) => set("class_exposure_30d", v)}
+                />
+                <NumberField
+                  label="Class / 90d"
+                  value={form.class_exposure_90d}
+                  max={40}
+                  onChange={(v) => set("class_exposure_90d", v)}
+                />
+                <NumberField
+                  label="Class / 365d"
+                  value={form.class_exposure_365d}
+                  onChange={(v) => set("class_exposure_365d", v)}
+                />
+                <NumberField
+                  label="Subtype / 30d"
+                  value={form.subtype_exposure_30d}
+                  max={20}
+                  onChange={(v) => set("subtype_exposure_30d", v)}
+                />
+                <NumberField
+                  label="Subtype / 90d"
+                  value={form.subtype_exposure_90d}
+                  max={40}
+                  onChange={(v) => set("subtype_exposure_90d", v)}
+                />
+                <NumberField
+                  label="Subtype / 365d"
+                  value={form.subtype_exposure_365d}
+                  onChange={(v) => set("subtype_exposure_365d", v)}
+                />
+              </div>
+              {!exposureOrderValid && (
+                <p role="alert" className="field-error">
+                  Exposure counts must not decrease across time windows.
+                </p>
+              )}
+
+              <h3>4. Candidate antibiotics</h3>
+              <div className="actions compact-actions">
+                <button type="button" onClick={() => C(metadata.antibiotics)}>
+                  Select all
+                </button>
+                <button type="button" onClick={() => C([])}>
+                  Clear
+                </button>
+              </div>
+              <div className="candidate-grid">
+                {metadata.antibiotics.map((candidate) => (
+                  <Check
+                    key={candidate}
+                    checked={candidates.includes(candidate)}
+                    onChange={() => toggleCandidate(candidate)}
+                  >
+                    {candidate}
+                  </Check>
+                ))}
+              </div>
+              <button
+                className="primary rank-button"
+                disabled={!candidates.length || !exposureOrderValid}
+                onClick={() =>
+                  run(async () =>
+                    R(await api("/ml-demo/rank", { ...form, candidates })),
+                  )
+                }
+              >
+                Rank synthetic candidates
+              </button>
+            </section>
+            <section className="model-results" aria-live="polite">
+              <h3>Predicted synthetic susceptibility</h3>
+              {!ranking ? (
+                <div className="results-placeholder">
+                  Choose at least one candidate and run the model to compare its
+                  fabricated outputs.
+                </div>
+              ) : (
+                <>
+                  <ol className="ranking-list">
+                    {ranking.results.map((row) => {
+                      const percent = row.predicted_susceptibility * 100;
+                      return (
+                        <li key={row.antibiotic}>
+                          <div className="rank-line">
+                            <span>
+                              <strong>#{row.rank}</strong> {row.antibiotic}
+                            </span>
+                            <strong>{percent.toFixed(1)}%</strong>
+                          </div>
+                          <div
+                            className="probability-track"
+                            aria-label={`${row.antibiotic}: ${percent.toFixed(1)} percent synthetic susceptibility`}
+                          >
+                            <span style={{ width: `${percent}%` }} />
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                  <p className="muted result-scope">{ranking.scope}</p>
+                </>
+              )}
+            </section>
+          </div>
+        </fieldset>
       )}
     </>
   );
@@ -1172,9 +1791,19 @@ function About({ download }) {
         production identity system. All cases and benchmark images are
         synthetic.
       </p>
-      <button onClick={() => download("samples")}>
-        Download synthetic samples
-      </button>
+      <div className="actions">
+        <button onClick={() => download("samples")}>
+          Download synthetic samples
+        </button>
+        <a
+          className="linkbutton"
+          href="https://claude.ai/code/artifact/d80ddd76-fa51-4893-bcf3-38399fde7519?org=daaa9692-4acd-4c36-a3ee-78e27dda2988"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Project overview
+        </a>
+      </div>
     </>
   );
 }

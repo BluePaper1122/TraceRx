@@ -22,7 +22,11 @@ def test_arbitrary_image_not_faked():
     with pytest.raises(ExtractionError, match='recognizes only'):
         DemoAdapter().extract(out.getvalue())
 
-@pytest.mark.parametrize('data', [b'', b'broken image', b'x'*(8*1024*1024+1)])
+@pytest.mark.parametrize(
+    'data',
+    [b'', b'broken image', b'x'*(8*1024*1024+1)],
+    ids=['empty', 'invalid', 'too-large'],
+)
 def test_bad_images_rejected(data):
     with pytest.raises(ExtractionError):
         validate_image(data)

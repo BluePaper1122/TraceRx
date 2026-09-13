@@ -9,6 +9,7 @@ import secrets
 import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from functools import lru_cache
 from pathlib import Path
 from threading import RLock, Lock
 from zipfile import ZipFile, ZIP_DEFLATED
@@ -27,6 +28,8 @@ from .risk_fixtures import SCENARIOS, demo_profile
 from .risk_models import PriorCultureRecord
 from .risk_engine import calculate_drug_risk
 from .ledger import MockLedger
+from .ai_explain import explain, ExplainError
+from . import db as durable
 
 app = FastAPI(title='ResistLens synthetic API', docs_url=None, redoc_url=None)
 SESSIONS = {}
@@ -49,6 +52,7 @@ class Session:
         self.transfers = {}
         self.benchmark_results = []
         self.benchmark_model = None
+        self.token_hash = None
     @property
     def at(self):
         return DEMO_NOW + timedelta(hours=self.offset-36)
@@ -106,7 +110,9 @@ def create_session():
         if len(SESSIONS) >= 100:
             raise HTTPException(503,'Demo session capacity reached. Try again later.')
         token = secrets.token_urlsafe(32)
-        SESSIONS[token] = Session()
+        s = Session()
+        s.token_hash = durable.token_hash(token)
+        SESSIONS[token] = s
     return {'token':token}
 
 @app.delete('/api/session')
@@ -119,6 +125,7 @@ def end_session(request: Request, s=Depends(session)):
 
 def record(s, action, **detail):
     s.audit.append({'recorded_at_utc':datetime.now(timezone.utc).isoformat(),'action':action,**detail})
+    durable.record_audit(s.token_hash, action, detail)
 
 def state(s):
     rows=[]
@@ -322,22 +329,138 @@ class Risk(StrictModel):
     scenario: str
     lookup: bool = False
 
+def _risk_profile(s, patient_id, scenario, do_lookup):
+    p=demo_profile(patient_id,scenario)
+    result=None
+    if scenario=='Transfer records unavailable':
+        if do_lookup:
+            c=PriorCultureRecord(record_id='SYN-TRANSFER-CULTURE',organism=p.organism,specimen='Synthetic sample',category='routine',observed_at=DEMO_NOW-timedelta(days=10),susceptibility={'Demo drug A':'R'},source_quote='Fictional hospital B: Demo drug A = R.')
+            ledger=MockLedger();ledger.register('fictional-transfer-token','Fictional hospital B',c.model_dump(mode='json'),{'Fictional hospital A'})
+            result=ledger.lookup('fictional-transfer-token','Fictional hospital A')
+            if result['state']=='verified':s.transfers[patient_id]=result
+        result=s.transfers.get(patient_id)
+        if result:
+            p.cultures.append(PriorCultureRecord.model_validate(result['payload']));p.transfer_unavailable=False
+    return p,result
+
 @app.post('/api/risk')
 def risk(body: Risk,s=Depends(session)):
     if body.scenario not in SCENARIOS:raise HTTPException(400,'Unknown scenario.')
     if not any(c.patient_id==body.patient_id for c in s.cases):raise HTTPException(404,'Case not found.')
-    p=demo_profile(body.patient_id,body.scenario)
-    result=None
-    if body.scenario=='Transfer records unavailable':
-        if body.lookup:
-            c=PriorCultureRecord(record_id='SYN-TRANSFER-CULTURE',organism=p.organism,specimen='Synthetic sample',category='routine',observed_at=DEMO_NOW-timedelta(days=10),susceptibility={'Demo drug A':'R'},source_quote='Fictional hospital B: Demo drug A = R.')
-            ledger=MockLedger();ledger.register('fictional-transfer-token','Fictional hospital B',c.model_dump(mode='json'),{'Fictional hospital A'})
-            result=ledger.lookup('fictional-transfer-token','Fictional hospital A')
-            if result['state']=='verified':s.transfers[body.patient_id]=result
-        result=s.transfers.get(body.patient_id)
-        if result:
-            p.cultures.append(PriorCultureRecord.model_validate(result['payload']));p.transfer_unavailable=False
+    p,result=_risk_profile(s,body.patient_id,body.scenario,body.lookup)
     return {'prediction':calculate_drug_risk(p,'Demo drug A','Demo class A',s.at).model_dump(mode='json'),'lookup':result}
+
+class Explain(StrictModel):
+    patient_id: str
+    scenario: str
+    question: str = Field(min_length=1,max_length=500)
+
+@app.post('/api/explain')
+def explain_route(body: Explain,s=Depends(session)):
+    if body.scenario not in SCENARIOS:raise HTTPException(400,'Unknown scenario.')
+    if not any(c.patient_id==body.patient_id for c in s.cases):raise HTTPException(404,'Case not found.')
+    p,_=_risk_profile(s,body.patient_id,body.scenario,False)
+    prediction=calculate_drug_risk(p,'Demo drug A','Demo class A',s.at)
+    try:
+        result=explain(prediction,body.question)
+    except ExplainError as exc:
+        raise HTTPException(502,str(exc)) from None
+    durable.record_explanation(body.patient_id,body.scenario,body.question,result,prediction.model_dump(mode='json'))
+    record(s,'AI explanation requested',patient_id=body.patient_id,scenario=body.scenario)
+    return result
+
+ML_ROOT = Path(__file__).resolve().parents[1] / 'ml'
+ML_CATEGORY_KEYS = {
+    'organism': 'organisms',
+    'antibiotic': 'antibiotics',
+    'culture_description': 'culture_descriptions',
+    'ordering_mode': 'ordering_modes',
+    'age_bucket': 'age_buckets',
+    'gender': 'genders',
+}
+
+@lru_cache(maxsize=1)
+def _synthetic_model_assets():
+    """Load the explicitly synthetic teaching model once per API process."""
+    import joblib
+    metadata_path = ML_ROOT / 'synthetic_model_metadata.json'
+    model_path = ML_ROOT / 'synthetic_model.joblib'
+    if not metadata_path.exists() or not model_path.exists():
+        raise RuntimeError('Synthetic model artifacts are not installed.')
+    return joblib.load(model_path), json.loads(metadata_path.read_text(encoding='utf-8'))
+
+class SyntheticModelInput(StrictModel):
+    organism: str = Field(min_length=1, max_length=80)
+    culture_description: str = Field(min_length=1, max_length=80)
+    ordering_mode: str = Field(min_length=1, max_length=40)
+    age_bucket: str = Field(min_length=1, max_length=20)
+    gender: str = Field(min_length=1, max_length=20)
+    prior_organism_count: int = Field(ge=0, le=20)
+    days_since_prior_organism: int = Field(ge=0, le=720)
+    class_exposure_30d: int = Field(ge=0, le=20)
+    class_exposure_90d: int = Field(ge=0, le=40)
+    class_exposure_365d: int = Field(ge=0, le=80)
+    subtype_exposure_30d: int = Field(ge=0, le=20)
+    subtype_exposure_90d: int = Field(ge=0, le=40)
+    subtype_exposure_365d: int = Field(ge=0, le=80)
+    candidates: list[str] = Field(min_length=1, max_length=6)
+
+def _validate_synthetic_input(body, metadata):
+    fields = ('organism', 'culture_description', 'ordering_mode', 'age_bucket', 'gender')
+    for field in fields:
+        if getattr(body, field) not in metadata[ML_CATEGORY_KEYS[field]]:
+            raise HTTPException(400, f'Unknown synthetic {field.replace("_", " ")}.')
+    if len(set(body.candidates)) != len(body.candidates):
+        raise HTTPException(400, 'Candidate antibiotics must be unique.')
+    if any(candidate not in metadata['antibiotics'] for candidate in body.candidates):
+        raise HTTPException(400, 'Unknown synthetic candidate antibiotic.')
+    if not (
+        body.class_exposure_30d <= body.class_exposure_90d <= body.class_exposure_365d
+        and body.subtype_exposure_30d <= body.subtype_exposure_90d <= body.subtype_exposure_365d
+    ):
+        raise HTTPException(400, 'Exposure counts must not decrease across 30, 90, and 365 day windows.')
+
+@app.get('/api/ml-demo/metadata')
+def synthetic_model_metadata(s=Depends(session)):
+    _, metadata = _synthetic_model_assets()
+    return metadata
+
+@app.post('/api/ml-demo/rank')
+def synthetic_model_rank(body: SyntheticModelInput, s=Depends(session)):
+    import pandas as pd
+    model, metadata = _synthetic_model_assets()
+    _validate_synthetic_input(body, metadata)
+    shared = body.model_dump(exclude={'candidates'})
+    rows = [{**shared, 'antibiotic': candidate} for candidate in body.candidates]
+    frame = pd.DataFrame(rows, columns=metadata['categorical_cols'] + metadata['numeric_cols'])
+    for column in metadata['categorical_cols']:
+        frame[column] = pd.Categorical(
+            frame[column], categories=metadata[ML_CATEGORY_KEYS[column]]
+        )
+    probabilities = model.predict_proba(frame)[:, 1]
+    ranked = sorted(
+        (
+            {
+                'antibiotic': candidate,
+                'predicted_susceptibility': round(float(probability), 4),
+            }
+            for candidate, probability in zip(body.candidates, probabilities)
+        ),
+        key=lambda row: (-row['predicted_susceptibility'], row['antibiotic']),
+    )
+    for index, row in enumerate(ranked, start=1):
+        row['rank'] = index
+    record(s, 'Synthetic model demo ranked', candidates=len(ranked))
+    return {
+        'results': ranked,
+        'metrics': metadata['metrics'],
+        'disclaimer': metadata['disclaimer'],
+        'scope': 'Teaching demo only. These outputs never enter the deterministic resistance scorecard.',
+    }
+
+@app.get('/api/audit/history')
+def audit_history():
+    return {'enabled':durable.enabled(),'entries':durable.recent_audit(50)}
 
 @app.get('/api/export/{kind}')
 def export(kind: str,s=Depends(session)):
