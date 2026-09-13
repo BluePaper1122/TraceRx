@@ -4,6 +4,10 @@
 
 > Note that this is a research demonstration only. All cases and documents are invented. TraceRx does not diagnose, prescribe, recommend medication changes, determine resistance, or assess treatment appropriateness. A flag means no qualifying review is documented in the available record. “Reviewed” and “No trigger” are workflow states, not clinical safety judgments.
 
+## These are the links to our project!
+https://resistlens.onrender.com/
+https://antibiotic-resistance-tool.onrender.com/
+
 ## Start on a Mac without typing commands
 
 Double-click `Launch TraceRx.command` in this folder. It opens TraceRx in your default browser; keep its Terminal window open. It reuses an available project environment, or installs dependencies on first use. Start with **Start here** and follow the four guided steps. This isolated walkthrough does not modify your patient workspace.
