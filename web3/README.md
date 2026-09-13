@@ -86,16 +86,32 @@ Prefer **devnet** for rehearsal (airdrop). Use **mainnet-beta** only for a final
 cd web3
 npm install
 npm test
-npm run build
-npm run dev
+npm run server   # backend on http://127.0.0.1:18447
+npm run dev      # UI on http://127.0.0.1:43137 (proxies /api → backend)
 ```
 
 Open http://127.0.0.1:43137
+
+### Backend (Niha) — what it does
+
+Local Node API under `web3/server/` (author **Niha**):
+
+| Route | Purpose |
+| --- | --- |
+| `GET /api/health` | Liveness + feature list |
+| `POST /api/session/open` | Records face-unlock attestation (templates stay in browser TEE) |
+| `GET /api/immunity/patients` | Synthetic immunity roster (#2 + traps #4/#7/#10) |
+| `GET /api/immunity/patients/:id/score` | Readme-3 score chain (antibiogram → colonization → prior → exposure) |
+| `POST /api/demo/seed` | Seeds CAD + DAG with #2 score and #10 continuity gap |
+| `POST /api/solana/commitments` | Stores memo receipt (`RL1\|root\|tip\|n`) — **no PHI** |
+
+Face templates never leave the browser. Solana still needs a tiny bit of SOL only if you publish a real memo; local commitment works offline.
 
 Optional env (`web3/.env.local`, never commit secrets):
 
 ```bash
 VITE_SOLANA_CLUSTER=devnet
+VITE_WEB3_API=http://127.0.0.1:18447
 # VITE_SOLANA_RPC=https://api.devnet.solana.com
 # Final demo only:
 # VITE_SOLANA_CLUSTER=mainnet-beta
@@ -103,11 +119,11 @@ VITE_SOLANA_CLUSTER=devnet
 
 ### Demo flow
 
-1. Enroll / unlock the local TEE (webcam).  
-2. **Seed CAD / DAG** (builds vault + cached merkle root).  
-3. Cluster **devnet** → **Connect Phantom** → airdrop if empty.  
-4. **Commit CAD root to Solana** → open Explorer (memo only).  
-5. Offline? use **Local fallback commit** (same memo shape).
+1. Start **server** + **dev** (above).  
+2. Enroll / unlock the local TEE (webcam).  
+3. **Seed backend + score #2** (Immunity submodule via API).  
+4. Optionally **Record local Solana commitment** (or Connect Phantom on devnet for a real memo).  
+5. Teammate Streamlit stays unchanged on its own port.
 
 ### Teammate Streamlit (unchanged)
 
@@ -123,4 +139,4 @@ python -m streamlit run app.py
 
 ## Author
 
-Niha — additive `web3/` module + product framing (ResistLens core · Immunity submodule · local TEE/CAD/DAG/Solana).
+Niha — additive `web3/` frontend + backend (ResistLens core · Immunity submodule · local TEE/CAD/DAG/Solana).
