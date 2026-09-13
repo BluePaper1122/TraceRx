@@ -1,5 +1,27 @@
 import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
+import {
+  Activity,
+  ArrowRight,
+  BarChart3,
+  Beaker,
+  BookOpenCheck,
+  Bot,
+  ChevronRight,
+  FileScan,
+  FlaskConical,
+  Home,
+  Info,
+  Menu,
+  Moon,
+  Network,
+  PanelLeftClose,
+  ShieldCheck,
+  SlidersHorizontal,
+  Sun,
+  UserRoundSearch,
+  X,
+} from "lucide-react";
 import "./style.css";
 const pages = [
   "Start here",
@@ -12,6 +34,62 @@ const pages = [
   "Synthetic model lab",
   "About & demo",
 ];
+const pageDetails = {
+  "Start here": {
+    group: "Workflow",
+    icon: Home,
+    eyebrow: "Guided case",
+    description: "Follow one synthetic case from evidence to review.",
+  },
+  Overview: {
+    group: "Workflow",
+    icon: BarChart3,
+    eyebrow: "Review queue",
+    description: "Scan case status, workload, and exportable evidence.",
+  },
+  "Patient workspace": {
+    group: "Workflow",
+    icon: UserRoundSearch,
+    eyebrow: "Case review",
+    description: "Inspect the resistance scorecard and its evidence chain.",
+  },
+  "Document studio": {
+    group: "Workflow",
+    icon: FileScan,
+    eyebrow: "Source intake",
+    description: "Extract, verify, and import synthetic documents.",
+  },
+  "Evaluation lab": {
+    group: "Labs",
+    icon: FlaskConical,
+    eyebrow: "Rule evaluation",
+    description: "Exercise deterministic reconciliation scenarios.",
+  },
+  "AI connection": {
+    group: "Labs",
+    icon: Bot,
+    eyebrow: "Optional intelligence",
+    description: "Connect and verify an AI provider for this session.",
+  },
+  "Vision benchmark": {
+    group: "Labs",
+    icon: Activity,
+    eyebrow: "Model quality",
+    description: "Review extraction performance on synthetic evidence.",
+  },
+  "Synthetic model lab": {
+    group: "Labs",
+    icon: Beaker,
+    eyebrow: "Teaching model",
+    description: "Explore candidate ranking with fabricated model outputs.",
+  },
+  "About & demo": {
+    group: "Project",
+    icon: Info,
+    eyebrow: "Project story",
+    description: "Understand the architecture, limits, and demo path.",
+  },
+};
 const scenarios = [
   "Not tested",
   "Aged positive",
@@ -156,6 +234,39 @@ function StorageStatus({ api }) {
     </p>
   );
 }
+function ThemeToggle({ theme, onToggle }) {
+  const nextTheme = theme === "dark" ? "light" : "dark";
+  return (
+    <button
+      type="button"
+      className="theme-toggle"
+      onClick={onToggle}
+      aria-label={`Switch to ${nextTheme} mode`}
+      title={`Switch to ${nextTheme} mode`}
+      aria-pressed={theme === "dark"}
+    >
+      <Sun aria-hidden="true" />
+      <span className="toggle-track" aria-hidden="true">
+        <span />
+      </span>
+      <Moon aria-hidden="true" />
+      <span className="theme-label">{theme} mode</span>
+    </button>
+  );
+}
+function ProductMark() {
+  return (
+    <div className="product-mark" aria-label="TraceRx">
+      <span className="mark-icon" aria-hidden="true">
+        <Network />
+      </span>
+      <span>
+        <strong>TraceRx</strong>
+        <small>Evidence review workspace</small>
+      </span>
+    </div>
+  );
+}
 function App() {
   const [token, T] = useState(""),
     [state, S] = useState(null),
@@ -164,7 +275,15 @@ function App() {
     [error, E] = useState(""),
     [success, U] = useState(""),
     [reset, R] = useState(false),
-    [menu, M] = useState(false);
+    [menu, M] = useState(false),
+    [theme, setTheme] = useState(() => {
+      const saved = localStorage.getItem("tracerx-theme");
+      return saved === "light" || saved === "dark"
+        ? saved
+        : matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+    });
   async function api(
     path,
     body,
@@ -222,6 +341,16 @@ function App() {
       active = false;
     };
   }, []);
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+    localStorage.setItem("tracerx-theme", theme);
+  }, [theme]);
+  useEffect(() => {
+    const closeOnEscape = (event) => event.key === "Escape" && M(false);
+    addEventListener("keydown", closeOnEscape);
+    return () => removeEventListener("keydown", closeOnEscape);
+  }, []);
   async function run(fn) {
     B(true);
     E("");
@@ -238,35 +367,70 @@ function App() {
     run(async () =>
       save(
         await api("/export/" + kind, undefined, "GET", true),
-        "resistlens-" +
+        "tracerx-" +
           kind +
           (kind === "session" ? ".json" : kind === "queue" ? ".csv" : ".zip"),
       ),
     );
-  const ctx = { api, state, setState: S, run, busy, success: U, download };
+  const navigate = (destination) => {
+    P(destination);
+    M(false);
+    E("");
+    U("");
+    scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const ctx = {
+    api,
+    state,
+    setState: S,
+    run,
+    busy,
+    success: U,
+    download,
+    navigate,
+  };
+  const activePage = pageDetails[page];
   return (
-    <>
-      <button className="menu" onClick={() => M(!menu)}>
-        ☰ Navigation
+    <div className="app-shell">
+      <button
+        className="menu"
+        onClick={() => M(!menu)}
+        aria-label={menu ? "Close navigation" : "Open navigation"}
+        aria-expanded={menu}
+      >
+        {menu ? <X /> : <Menu />}
       </button>
-      <aside className={menu ? "open" : ""}>
-        <h2>ResistLens</h2>
-        <p className="muted">Evidence review workspace</p>
-        <nav>
-          {pages.map((p) => (
-            <button
-              disabled={busy}
-              className={page === p ? "active" : ""}
-              key={p}
-              onClick={() => {
-                P(p);
-                M(false);
-                E("");
-                U("");
-              }}
-            >
-              {p}
-            </button>
+      {menu && (
+        <button
+          className="sidebar-backdrop"
+          aria-label="Close navigation"
+          onClick={() => M(false)}
+        />
+      )}
+      <aside className={menu ? "sidebar open" : "sidebar"}>
+        <ProductMark />
+        <nav aria-label="Primary navigation">
+          {["Workflow", "Labs", "Project"].map((group) => (
+            <div className="nav-group" key={group}>
+              <small>{group}</small>
+              {pages
+                .filter((item) => pageDetails[item].group === group)
+                .map((item) => {
+                  const Icon = pageDetails[item].icon;
+                  return (
+                    <button
+                      disabled={busy}
+                      className={page === item ? "active" : ""}
+                      key={item}
+                      onClick={() => navigate(item)}
+                      aria-current={page === item ? "page" : undefined}
+                    >
+                      <Icon aria-hidden="true" />
+                      <span>{item}</span>
+                    </button>
+                  );
+                })}
+            </div>
           ))}
         </nav>
         {state && (
@@ -313,129 +477,265 @@ function App() {
           </>
         )}
       </aside>
-      <main>
-        <header className="hero">
-          <div className="hero-copy">
-            <small>HACKRICE 2026 · EVIDENCE REVIEW</small>
-            <h1>ResistLens</h1>
-            <h2>Close the evidence-to-review gap.</h2>
-            <p>
-              Bring source evidence, <strong>deterministic checks</strong>, and
-              human review into one traceable workspace.
-            </p>
-            <div className="tags">
-              <span>Deterministic rules</span>
-              <span>Source provenance</span>
-              <span>Human verification</span>
-            </div>
+      <div className="app-frame">
+        <header className="topbar">
+          <div className="mobile-brand">
+            <ProductMark />
           </div>
-          <div className="evidence-rail" aria-label="Evidence review workflow">
-            <div className="rail-node">
-              <small>01 · SOURCE</small>
-              <p>New evidence arrives</p>
+          <div className="breadcrumb">
+            <strong>{page}</strong>
+            <ChevronRight aria-hidden="true" />
+            <span>{activePage.eyebrow}</span>
+          </div>
+          <div className="topbar-actions">
+            <div className="demo-ready">
+              <span className="status-dot" />
+              <span>
+                <strong>Demo ready</strong>
+                <small>Synthetic environment</small>
+              </span>
             </div>
-            <div className="rail-node">
-              <small>02 · RECONCILE</small>
-              <p>Check the active order</p>
-            </div>
-            <div className="rail-node">
-              <small>03 · REVIEW</small>
-              <p>Trace the documented review</p>
-            </div>
+            <ThemeToggle
+              theme={theme}
+              onToggle={() => setTheme(theme === "dark" ? "light" : "dark")}
+            />
           </div>
         </header>
-        <p className="disclaimer">
-          Synthetic demonstration only. No real patient data. Not a diagnostic
-          or treatment recommendation tool.
-        </p>
-        {error && (
-          <div role="alert" className="notice warn">
-            {error}
+        <main>
+          <div className="disclaimer" role="note">
+            <ShieldCheck aria-hidden="true" />
+            <p>
+              <strong>Synthetic demonstration only.</strong> No real patient
+              data. Not a diagnostic or treatment recommendation tool.
+            </p>
           </div>
-        )}
-        {success && (
-          <div role="status" className="notice">
-            {success}
-          </div>
-        )}
-        {busy && <p role="status">Working…</p>}
-        {!state ? (
-          <p>Loading workspace…</p>
-        ) : (
-          <>
-            <h2>{page}</h2>
-            {page === pages[0] ? (
-              <Guide {...ctx} />
-            ) : page === pages[1] ? (
-              <Overview {...ctx} />
-            ) : page === pages[2] ? (
-              <Workspace {...ctx} />
-            ) : page === pages[3] ? (
-              <Studio {...ctx} />
-            ) : page === pages[4] ? (
-              <Evaluation {...ctx} />
-            ) : page === pages[5] ? (
-              <Connection {...ctx} />
-            ) : page === pages[6] ? (
-              <Benchmark {...ctx} />
-            ) : page === pages[7] ? (
-              <SyntheticModelLab {...ctx} />
-            ) : (
-              <About {...ctx} />
-            )}
-          </>
-        )}
-      </main>
-    </>
+          {error && (
+            <div role="alert" className="notice warn">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div role="status" className="notice">
+              {success}
+            </div>
+          )}
+          {busy && <p role="status">Working…</p>}
+          {!state ? (
+            <div className="loading-state">
+              <span /> Loading workspace&hellip;
+            </div>
+          ) : (
+            <>
+              {page !== pages[0] && (
+                <header className="page-heading">
+                  <div className="page-heading-icon">
+                    {React.createElement(activePage.icon)}
+                  </div>
+                  <div>
+                    <small>{activePage.eyebrow}</small>
+                    <h1>{page}</h1>
+                    <p>{activePage.description}</p>
+                  </div>
+                </header>
+              )}
+              {page === pages[0] ? (
+                <Guide {...ctx} />
+              ) : page === pages[1] ? (
+                <Overview {...ctx} />
+              ) : page === pages[2] ? (
+                <Workspace {...ctx} />
+              ) : page === pages[3] ? (
+                <Studio {...ctx} />
+              ) : page === pages[4] ? (
+                <Evaluation {...ctx} />
+              ) : page === pages[5] ? (
+                <Connection {...ctx} />
+              ) : page === pages[6] ? (
+                <Benchmark {...ctx} />
+              ) : page === pages[7] ? (
+                <SyntheticModelLab {...ctx} />
+              ) : (
+                <About {...ctx} />
+              )}
+            </>
+          )}
+        </main>
+      </div>
+    </div>
   );
 }
-function Guide({ api }) {
+function Guide({ api, state, setState, run, busy, navigate }) {
   const [step, set] = useState(0),
     [data, error] = useData(api, "/guide/" + step);
+  const steps = [
+    ["Before the result", "Context and evidence"],
+    ["Final result arrives", "Review and reconcile"],
+    ["Record a review", "Add human assessment"],
+    ["Evidence trail", "Complete and export"],
+  ];
+  const explanation =
+    step === 0
+      ? "An active order exists, but the final result has not arrived."
+      : step === 1
+        ? "A final report arrived after the order started. A review is now due."
+        : step === 2
+          ? "This guided example simulates a review linked to the specific order and report."
+          : "The source documents and explicit links make the decision traceable.";
   return (
-    <>
-      <p>
-        Follow one synthetic case from new evidence to a source-linked review.
-      </p>
-      <div className="tabs">
-        {[
-          "Before the result",
-          "Final result arrives",
-          "Record a review",
-          "Evidence trail",
-        ].map((s, i) => (
+    <div className="guide">
+      <section className="intro-panel">
+        <div className="intro-copy">
+          <small>HackRice 2026 · Evidence review</small>
+          <h1>Close the evidence-to-review gap.</h1>
+          <p>
+            Bring source evidence, <strong>deterministic checks</strong>, and
+            human review into one traceable workspace.
+          </p>
           <button
-            className={step === i ? "active" : ""}
-            key={s}
-            onClick={() => set(i)}
+            className="primary intro-action"
+            onClick={() => setStep(Math.min(step + 1, 3))}
           >
-            {i + 1}. {s}
+            Continue guided case <ArrowRight aria-hidden="true" />
+          </button>
+        </div>
+        <div className="evidence-flow" aria-label="Evidence review workflow">
+          {[
+            [FileScan, "Source", "New evidence arrives"],
+            [SlidersHorizontal, "Reconcile", "Check the active order"],
+            [BookOpenCheck, "Review", "Trace the documented review"],
+          ].map(([Icon, title, detail], index) => (
+            <React.Fragment key={title}>
+              <div className="flow-node">
+                <span>
+                  <Icon aria-hidden="true" />
+                </span>
+                <strong>{title}</strong>
+                <small>{detail}</small>
+              </div>
+              {index < 2 && (
+                <ArrowRight className="flow-arrow" aria-hidden="true" />
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+      </section>
+      <div
+        className="guide-steps"
+        role="tablist"
+        aria-label="Guided case steps"
+      >
+        {steps.map(([title, detail], index) => (
+          <button
+            className={step === index ? "active" : ""}
+            key={title}
+            onClick={() => set(index)}
+            role="tab"
+            aria-selected={step === index}
+          >
+            <span>{String(index + 1).padStart(2, "0")}</span>
+            <span>
+              <strong>{title}</strong>
+              <small>{detail}</small>
+            </span>
           </button>
         ))}
       </div>
       {error && <p role="alert">{error}</p>}
       {data && (
-        <>
-          <Findings items={data.findings} />
-          <p>
-            {step === 0
-              ? "An active order exists, but the final result has not arrived."
-              : step === 1
-                ? "A final report arrived after the order started. A review is now due."
-                : step === 2
-                  ? "This guided example simulates a review linked to the specific order and report."
-                  : "The source documents and explicit links make the decision traceable."}
-          </p>
-          {data.documents.map((d) => (
-            <details key={d.document_id}>
-              <summary>{d.title}</summary>
-              <pre>{d.text}</pre>
-              <Json value={d.event} />
-            </details>
-          ))}
-        </>
+        <div className="guide-layout">
+          <section className="current-case">
+            <header className="case-head">
+              <span className="case-icon">
+                <FileScan aria-hidden="true" />
+              </span>
+              <div>
+                <div className="case-title-line">
+                  <h2>Current case</h2>
+                  <span className="synthetic-badge">Synthetic case</span>
+                </div>
+                <p>Antibiotic resistance evidence review · Demo scenario</p>
+              </div>
+              <small>Step {String(step + 1).padStart(2, "0")} of 04</small>
+            </header>
+            <div className="case-step">
+              <span>{String(step + 1).padStart(2, "0")}</span>
+              <div>
+                <h3>{steps[step][0]}</h3>
+                <p>{explanation}</p>
+              </div>
+            </div>
+            <Findings items={data.findings} />
+            <div className="source-cards">
+              {data.documents.map((document) => (
+                <details key={document.document_id}>
+                  <summary>
+                    <span>
+                      <BookOpenCheck aria-hidden="true" /> {document.title}
+                    </span>
+                    <ChevronRight aria-hidden="true" />
+                  </summary>
+                  <pre>{document.text}</pre>
+                  <Json value={document.event} />
+                </details>
+              ))}
+            </div>
+          </section>
+          <section className="demo-control">
+            <header>
+              <SlidersHorizontal aria-hidden="true" />
+              <div>
+                <h2>Demo control</h2>
+                <p>Adjust the synthetic timeline.</p>
+              </div>
+            </header>
+            <label>
+              <span>Evaluation time</span>
+              <strong>Hour {state.offset}</strong>
+              <input
+                aria-label="Evaluation time"
+                disabled={busy}
+                type="range"
+                min="0"
+                max="48"
+                value={state.offset}
+                onChange={(event) =>
+                  run(async () =>
+                    setState(
+                      await api("/clock", {
+                        offset: Number(event.target.value),
+                      }),
+                    ),
+                  )
+                }
+              />
+            </label>
+            <div className="control-status">
+              <Bot aria-hidden="true" />
+              <span>
+                <strong>AI connection</strong>
+                <small>
+                  {state.connection.configured ? "Verified" : "Demo mode"}
+                </small>
+              </span>
+              <span className="status-pill">
+                <span className="status-dot" />
+                {state.connection.configured ? "Connected" : "Optional"}
+              </span>
+            </div>
+            <div className="control-note">
+              <Info aria-hidden="true" />
+              All outputs remain synthetic and for demonstration only.
+            </div>
+            <button
+              className="primary wide"
+              onClick={() => navigate("Patient workspace")}
+            >
+              Open patient workspace <ArrowRight aria-hidden="true" />
+            </button>
+          </section>
+        </div>
       )}
-    </>
+    </div>
   );
 }
 function Overview({ state, download }) {
@@ -1022,7 +1322,7 @@ function Risk({ api, patient, state, run, busy, success }) {
             run={run}
             busy={busy}
           />
-          <button onClick={() => save(data, "resistlens-scorecard.json")}>
+          <button onClick={() => save(data, "tracerx-scorecard.json")}>
             Download scorecard
           </button>
         </>
@@ -1603,7 +1903,7 @@ function Evaluation({ api }) {
             <summary>Extraction details</summary>
             <Table rows={d.extraction} />
           </details>
-          <button onClick={() => save(d, "resistlens-evaluation.json")}>
+          <button onClick={() => save(d, "tracerx-evaluation.json")}>
             Download evaluation
           </button>
         </>
@@ -1776,7 +2076,7 @@ function About({ download }) {
   return (
     <>
       <p>
-        ResistLens connects source evidence to explicit review tasks. Extraction
+        TraceRx connects source evidence to explicit review tasks. Extraction
         proposes structured events; deterministic Python rules decide whether a
         source-verified final report needs review against an active order.
       </p>
